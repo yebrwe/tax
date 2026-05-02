@@ -906,9 +906,13 @@ function renderPeople() {
 
 function renderTasks() {
   const tasks = getVisibleTasks();
+  const useGroupedRequests = shouldRenderGroupedRequests();
+  const visibleItems = useGroupedRequests ? groupRequestedTasks(tasks) : tasks;
   elements.taskCountTitle.textContent =
     appRole === "family"
       ? `업로드할 서류 ${tasks.length}건`
+      : useGroupedRequests
+        ? `요청서류 ${visibleItems.length}건`
       : state.mode === "catalog"
         ? `선택 가능 서류 ${tasks.length}건`
         : `요청서류 ${tasks.length}건`;
@@ -918,8 +922,45 @@ function renderTasks() {
       : state.mode === "catalog"
         ? "조건에 맞는 서류가 없습니다."
         : "요청된 서류가 없습니다. 서류 선택에서 필요한 항목을 요청하세요.";
-  elements.emptyState.hidden = tasks.length > 0;
-  elements.taskList.innerHTML = tasks.map(renderTaskCard).join("");
+  elements.emptyState.hidden = visibleItems.length > 0;
+  elements.taskList.classList.toggle("is-grouped", useGroupedRequests);
+  elements.taskList.innerHTML = visibleItems.map(useGroupedRequests ? renderTaskGroupCard : renderTaskCard).join("");
+}
+
+function shouldRenderGroupedRequests() {
+  return appRole === "accountant" && state.mode === "requested" && state.filters.person === "all";
+}
+
+function groupRequestedTasks(tasks) {
+  const groups = new Map();
+
+  tasks.forEach((task) => {
+    const key = task.templateKey && task.templateKey !== "custom" ? task.templateKey : `${task.title}::${task.category}::${task.issuer}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: `group-${key}`,
+        templateKey: task.templateKey,
+        category: task.category,
+        title: task.title,
+        issuer: task.issuer,
+        detail: task.detail,
+        order: task.order ?? 999,
+        tasks: [],
+      });
+    }
+    groups.get(key).tasks.push(task);
+  });
+
+  return [...groups.values()]
+    .map((group) => {
+      group.tasks.sort(byPerson);
+      group.doneCount = group.tasks.filter((task) => task.status === "done").length;
+      group.todoCount = group.tasks.filter((task) => task.status === "todo").length;
+      group.fileCount = group.tasks.reduce((sum, task) => sum + task.files.length, 0);
+      group.status = group.doneCount === group.tasks.length ? "done" : "todo";
+      return group;
+    })
+    .sort((a, b) => byCategory(a, b) || byOrder(a, b) || a.title.localeCompare(b.title, "ko-KR"));
 }
 
 function getVisibleTasks() {
@@ -1016,22 +1057,7 @@ function renderTaskCard(task) {
         ? ""
       : editButton;
   const fileChips = task.files.length
-    ? task.files
-        .map(
-          (file) => {
-            const fileName = escapeHtml(file.name || String(file));
-            const fileContent = file.url
-              ? `<a href="${escapeHtml(file.url)}" target="_blank" rel="noopener" download>${fileName}</a>`
-              : `<span>${fileName}</span>`;
-            return `
-            <span class="file-chip">
-              ${fileContent}
-              <button type="button" data-action="remove-file" data-file="${escapeHtml(file.pathname || file.url || file.name)}" title="파일명 삭제" aria-label="${fileName} 삭제">×</button>
-            </span>
-          `;
-          },
-        )
-        .join("")
+    ? task.files.map((file) => renderFileChip(file, true)).join("")
     : '<span class="muted">기록된 파일 없음</span>';
   const taskBody =
     appRole === "family"
@@ -1084,6 +1110,64 @@ function renderTaskCard(task) {
       </div>
       ${taskBody}
     </article>
+  `;
+}
+
+function renderTaskGroupCard(group) {
+  const detail = group.detail.trim() || "상세 없음";
+  const fileText = group.fileCount ? `업로드 ${group.fileCount}개` : "업로드 없음";
+  const statusText = group.doneCount === group.tasks.length ? "완료" : `${group.doneCount}/${group.tasks.length} 완료`;
+  const peopleRows = group.tasks
+    .map((task) => {
+      const files = task.files.length ? task.files.map((file) => renderFileChip(file, false)).join("") : '<span class="muted">업로드 없음</span>';
+      return `
+        <div class="group-person-row ${task.status === "done" ? "is-done" : "is-todo"}">
+          <div class="group-person-main">
+            <strong>${escapeHtml(task.person)}</strong>
+            <span class="pill ${task.status}">${STATUS[task.status]}</span>
+          </div>
+          <div class="group-person-files">${files}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <article class="task-card task-group is-required is-${group.status}" data-template-key="${escapeHtml(group.templateKey)}">
+      <div class="task-head">
+        <div class="task-title">
+          <h3>${escapeHtml(group.title)}</h3>
+          <div class="task-meta">
+            <span class="pill category">${escapeHtml(categoryLabel(group.category))}</span>
+            <span class="pill requested">요청됨</span>
+            <span class="pill ${group.status}">${escapeHtml(statusText)}</span>
+            <span>${escapeHtml(group.issuer || "발급처 미정")}</span>
+            <span>${escapeHtml(fileText)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="task-body group-body">
+        <p class="group-detail">${escapeHtml(detail)}</p>
+        <div class="group-people">${peopleRows}</div>
+      </div>
+    </article>
+  `;
+}
+
+function renderFileChip(file, allowRemove) {
+  const fileName = escapeHtml(file.name || String(file));
+  const fileContent = file.url
+    ? `<a href="${escapeHtml(file.url)}" target="_blank" rel="noopener" download>${fileName}</a>`
+    : `<span>${fileName}</span>`;
+  const removeButton = allowRemove
+    ? `<button type="button" data-action="remove-file" data-file="${escapeHtml(file.pathname || file.url || file.name)}" title="파일명 삭제" aria-label="${fileName} 삭제">×</button>`
+    : "";
+
+  return `
+    <span class="file-chip">
+      ${fileContent}
+      ${removeButton}
+    </span>
   `;
 }
 

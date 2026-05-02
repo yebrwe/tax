@@ -1,25 +1,25 @@
 :root {
-  --bg: #f4f6f8;
+  --bg: #f7f9fb;
   --surface: #ffffff;
-  --surface-soft: #f8fafc;
-  --surface-strong: #111827;
-  --line: #d8dee8;
-  --line-strong: #b9c2cf;
-  --text: #172033;
-  --muted: #657184;
-  --accent: #0f766e;
-  --accent-strong: #0b5f59;
-  --accent-soft: #dff4ef;
-  --blue: #1d4ed8;
-  --blue-soft: #e0ebff;
-  --amber: #a16207;
-  --amber-soft: #fff4d6;
+  --surface-soft: #f9fafb;
+  --surface-strong: #191f28;
+  --line: #e5e8eb;
+  --line-strong: #d1d6db;
+  --text: #191f28;
+  --muted: #6b7684;
+  --accent: #3182f6;
+  --accent-strong: #1b64da;
+  --accent-soft: #eaf3ff;
+  --blue: #3182f6;
+  --blue-soft: #eaf3ff;
+  --amber: #b7791f;
+  --amber-soft: #fff6df;
   --danger: #b42318;
-  --danger-soft: #ffe3de;
-  --done: #247145;
-  --done-soft: #e1f5e8;
-  --shadow: 0 16px 38px rgba(17, 24, 39, 0.08);
-  --shadow-soft: 0 8px 22px rgba(17, 24, 39, 0.06);
+  --danger-soft: #fff0ed;
+  --done: #008a5c;
+  --done-soft: #e8f8f0;
+  --shadow: 0 16px 38px rgba(25, 31, 40, 0.08);
+  --shadow-soft: 0 8px 22px rgba(25, 31, 40, 0.05);
   --radius: 8px;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -1386,6 +1386,126 @@ body[data-role="accountant"] .task-body {
   background: var(--surface);
 }
 
+body[data-role="accountant"] .overview {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body[data-role="accountant"] .metric {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+body[data-role="accountant"] .metric + .metric {
+  border-left: 1px solid var(--line);
+}
+
+body[data-role="accountant"] .people-strip {
+  margin-top: 10px;
+}
+
+body[data-role="accountant"] .person-card {
+  border: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+body[data-role="accountant"] .person-card.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(49, 130, 246, 0.14);
+}
+
+body[data-role="accountant"] .mode-tabs,
+body[data-role="accountant"] .view-tabs {
+  background: #f2f4f6;
+}
+
+body[data-role="accountant"] .mode-tab.is-active,
+body[data-role="accountant"] .tab.is-active {
+  color: var(--text);
+  background: var(--surface);
+}
+
+body[data-role="accountant"] .quick-actions .wide-button,
+body[data-role="accountant"] .share-action {
+  background: var(--accent);
+}
+
+body[data-role="accountant"] .quick-actions .wide-button:hover,
+body[data-role="accountant"] .share-action:hover {
+  background: var(--accent-strong);
+}
+
+body[data-role="accountant"] .task-list.is-grouped {
+  gap: 10px;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+body[data-role="accountant"] .task-list.is-grouped .task-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(25, 31, 40, 0.04);
+}
+
+.task-group .task-body {
+  display: block;
+  border-top: 1px solid var(--line);
+}
+
+.group-detail {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.group-people {
+  display: grid;
+  gap: 8px;
+}
+
+.group-person-row {
+  display: grid;
+  grid-template-columns: minmax(112px, 0.32fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+  background: var(--surface-soft);
+}
+
+.group-person-row.is-done {
+  border-color: #bfe9d4;
+  background: #fbfffd;
+}
+
+.group-person-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-person-main strong {
+  min-width: 42px;
+  font-size: 0.92rem;
+}
+
+.group-person-files {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 @media (max-width: 1040px) {
   main {
     width: min(100% - 24px, 1120px);
@@ -1565,6 +1685,14 @@ body[data-role="accountant"] .task-body {
   .task-body,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .group-person-row {
+    grid-template-columns: 1fr;
+  }
+
+  .group-person-files {
+    justify-content: flex-start;
   }
 
   .form-grid .wide {
