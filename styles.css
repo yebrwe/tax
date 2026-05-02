@@ -90,6 +90,7 @@ h2 {
 .dialog-actions,
 .panel-toolbar,
 .view-tabs,
+.mode-tabs,
 .task-meta,
 .task-head,
 .task-actions,
@@ -259,6 +260,11 @@ dialog {
   margin-bottom: 14px;
 }
 
+.controls .mode-tabs,
+.controls .catalog-actions {
+  grid-column: 1 / -1;
+}
+
 label,
 .control-block label {
   color: var(--muted);
@@ -280,6 +286,12 @@ textarea {
 
 textarea {
   resize: vertical;
+}
+
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  background: #eef1f5;
 }
 
 input:focus,
@@ -319,6 +331,12 @@ button:focus-visible {
   background: var(--accent);
 }
 
+.wide-button.neutral {
+  border-color: var(--line);
+  color: var(--text);
+  background: #fff;
+}
+
 .danger {
   color: var(--danger);
 }
@@ -345,6 +363,31 @@ button:focus-visible {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #edf1f6;
+}
+
+.mode-tabs {
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #edf1f6;
+}
+
+.mode-tab {
+  flex: 1;
+  min-height: 36px;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--muted);
+  background: transparent;
+  font-weight: 900;
+}
+
+.mode-tab.is-active {
+  color: var(--text);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.1);
 }
 
 .tab {
@@ -378,6 +421,10 @@ button:focus-visible {
 
 .task-card.is-na {
   opacity: 0.78;
+}
+
+.task-card.is-unrequested {
+  background: #fafbfc;
 }
 
 .task-head {
@@ -425,6 +472,16 @@ button:focus-visible {
 .pill.category {
   color: #4b2e0f;
   background: #f2e5cf;
+}
+
+.pill.requested {
+  color: #064e3b;
+  background: #ccefe4;
+}
+
+.pill.unrequested {
+  color: #647083;
+  background: #eceff4;
 }
 
 .pill.todo {
@@ -550,6 +607,38 @@ button:focus-visible {
   display: none;
 }
 
+.request-switch {
+  min-width: 104px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 10px;
+  color: var(--text);
+  background: #fff;
+  font-size: 0.88rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.request-switch input {
+  width: 16px;
+  min-height: 16px;
+  accent-color: var(--accent);
+}
+
+.catalog-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.catalog-actions[hidden] {
+  display: none;
+}
+
 .empty-state {
   min-height: 120px;
   display: grid;
@@ -596,6 +685,25 @@ dialog::backdrop {
 .form-grid label {
   display: grid;
   gap: 8px;
+}
+
+.form-grid .check-label {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  align-self: end;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 10px;
+  color: var(--text);
+  background: #fff;
+}
+
+.check-label input {
+  width: 16px;
+  min-height: 16px;
+  accent-color: var(--accent);
 }
 
 .form-grid .wide {
@@ -655,6 +763,10 @@ dialog::backdrop {
   }
 
   .control-block {
+    margin-bottom: 0;
+  }
+
+  .mode-tabs {
     margin-bottom: 0;
   }
 
@@ -725,7 +837,7 @@ dialog::backdrop {
     padding: 12px;
   }
 
-  .controls .control-block:nth-child(4) {
+  .controls .control-block:nth-child(5) {
     grid-column: 1 / -1;
   }
 
@@ -742,6 +854,10 @@ dialog::backdrop {
   .task-actions select {
     flex: 1;
     min-width: 0;
+  }
+
+  .request-switch {
+    flex: 1;
   }
 
   .task-card {

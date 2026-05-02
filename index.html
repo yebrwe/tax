@@ -54,6 +54,11 @@
 
       <section class="workspace">
         <aside class="controls" aria-label="필터">
+          <div class="mode-tabs" role="tablist" aria-label="업무 모드">
+            <button class="mode-tab is-active" id="requestedModeButton" type="button">요청서류</button>
+            <button class="mode-tab" id="catalogModeButton" type="button">서류 선택</button>
+          </div>
+
           <div class="control-block">
             <label for="personFilter">대상자</label>
             <select id="personFilter"></select>
@@ -95,6 +100,16 @@
             <span aria-hidden="true">＋</span>
             항목 추가
           </button>
+          <div class="catalog-actions" id="catalogActions" hidden>
+            <button class="wide-button" id="requestVisibleButton" type="button">
+              <span aria-hidden="true">✓</span>
+              보이는 항목 요청
+            </button>
+            <button class="wide-button neutral" id="unrequestVisibleButton" type="button">
+              <span aria-hidden="true">−</span>
+              보이는 항목 해제
+            </button>
+          </div>
           <button class="wide-button danger" id="resetButton" type="button">
             <span aria-hidden="true">↺</span>
             기본 목록으로 복원
@@ -130,6 +145,10 @@
           <label>
             대상자
             <select id="taskPerson" required></select>
+          </label>
+          <label class="check-label">
+            <input id="taskRequired" type="checkbox" />
+            요청서류로 표시
           </label>
           <label>
             상태

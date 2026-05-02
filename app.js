@@ -19,6 +19,16 @@ const CATEGORIES = [
   { key: "tax-request", label: "세무사 추가요청" },
 ];
 
+const DEFAULT_REQUIRED = {
+  "local-tax": "all",
+  "real-estate-tax": "all",
+  "loan-payment": "all",
+  "insurance-payment": "all",
+  donation: "all",
+  "personal-change": "all",
+  medical: ["오명숙", "이윤하"],
+};
+
 const DEFAULT_TEMPLATES = [
   {
     key: "tax-help",
@@ -406,6 +416,8 @@ const elements = {
   todoMetric: document.querySelector("#todoMetric"),
   progressMetric: document.querySelector("#progressMetric"),
   peopleStrip: document.querySelector("#peopleStrip"),
+  requestedModeButton: document.querySelector("#requestedModeButton"),
+  catalogModeButton: document.querySelector("#catalogModeButton"),
   personFilter: document.querySelector("#personFilter"),
   statusFilter: document.querySelector("#statusFilter"),
   categoryFilter: document.querySelector("#categoryFilter"),
@@ -415,6 +427,9 @@ const elements = {
   taskList: document.querySelector("#taskList"),
   emptyState: document.querySelector("#emptyState"),
   addTaskButton: document.querySelector("#addTaskButton"),
+  catalogActions: document.querySelector("#catalogActions"),
+  requestVisibleButton: document.querySelector("#requestVisibleButton"),
+  unrequestVisibleButton: document.querySelector("#unrequestVisibleButton"),
   resetButton: document.querySelector("#resetButton"),
   copySummaryButton: document.querySelector("#copySummaryButton"),
   exportButton: document.querySelector("#exportButton"),
@@ -427,6 +442,7 @@ const elements = {
   dialogTitle: document.querySelector("#dialogTitle"),
   editingTaskId: document.querySelector("#editingTaskId"),
   taskPerson: document.querySelector("#taskPerson"),
+  taskRequired: document.querySelector("#taskRequired"),
   taskStatus: document.querySelector("#taskStatus"),
   taskCategory: document.querySelector("#taskCategory"),
   taskTitle: document.querySelector("#taskTitle"),
@@ -455,6 +471,7 @@ function createDefaultState() {
         title: template.title,
         issuer: template.issuer,
         detail: template.detail,
+        required: isDefaultRequired(person, template.key),
         status: "todo",
         due: "",
         note: "",
@@ -475,6 +492,7 @@ function createDefaultState() {
       search: "",
       sort: "category",
     },
+    mode: "requested",
     viewMode: "compact",
   };
 }
@@ -493,6 +511,7 @@ function loadState() {
       people: unique([...PEOPLE, ...parsed.people]),
       tasks: parsed.tasks.map(normalizeTask),
     };
+    migrated.mode = migrated.mode === "catalog" ? "catalog" : "requested";
     migrated.tasks = mergeMissingTemplateTasks(migrated);
     return migrated;
   } catch {
@@ -511,6 +530,7 @@ function normalizeTask(task) {
     title: task.title || "새 서류",
     issuer: task.issuer || "",
     detail: task.detail || "",
+    required: inferRequired(task, template),
     status: STATUS[task.status] ? task.status : "todo",
     due: task.due || "",
     note: task.note || "",
@@ -518,6 +538,14 @@ function normalizeTask(task) {
     createdAt: task.createdAt || new Date().toISOString(),
     updatedAt: task.updatedAt || new Date().toISOString(),
   };
+}
+
+function inferRequired(task, template) {
+  if (typeof task.required === "boolean") return task.required;
+  if (!template || task.templateKey === "custom") return true;
+  if (task.status && task.status !== "todo") return true;
+  if (task.due || task.note || (Array.isArray(task.files) && task.files.length > 0)) return true;
+  return isDefaultRequired(task.person || PEOPLE[0], task.templateKey);
 }
 
 function mergeMissingTemplateTasks(baseState) {
@@ -539,6 +567,7 @@ function mergeMissingTemplateTasks(baseState) {
         title: template.title,
         issuer: template.issuer,
         detail: template.detail,
+        required: isDefaultRequired(person, template.key),
         status: "todo",
         due: "",
         note: "",
@@ -567,6 +596,13 @@ function categoryExists(key) {
 
 function categoryLabel(key) {
   return CATEGORIES.find((category) => category.key === key)?.label || "기본/신고";
+}
+
+function isDefaultRequired(person, templateKey) {
+  const rule = DEFAULT_REQUIRED[templateKey];
+  if (rule === "all") return true;
+  if (Array.isArray(rule)) return rule.includes(person);
+  return false;
 }
 
 function saveState() {
@@ -609,6 +645,10 @@ function render() {
   elements.categoryFilter.value = state.filters.category;
   elements.searchInput.value = state.filters.search;
   elements.sortSelect.value = state.filters.sort;
+  elements.requestedModeButton.classList.toggle("is-active", state.mode === "requested");
+  elements.catalogModeButton.classList.toggle("is-active", state.mode === "catalog");
+  elements.statusFilter.disabled = state.mode === "catalog";
+  elements.catalogActions.hidden = state.mode !== "catalog";
   elements.compactViewButton.classList.toggle("is-active", state.viewMode === "compact");
   elements.detailViewButton.classList.toggle("is-active", state.viewMode === "detail");
 
@@ -619,11 +659,11 @@ function render() {
 }
 
 function renderMetrics() {
-  const activeTasks = state.tasks.filter((task) => task.status !== "na");
+  const activeTasks = state.tasks.filter((task) => task.required && task.status !== "na");
   const done = activeTasks.filter((task) => task.status === "done").length;
   const progress = activeTasks.filter((task) => task.status === "progress").length;
   const todo = activeTasks.filter((task) => task.status === "todo").length;
-  const percent = activeTasks.length ? Math.round((done / activeTasks.length) * 100) : 100;
+  const percent = activeTasks.length ? Math.round((done / activeTasks.length) * 100) : 0;
 
   elements.doneMetric.textContent = done;
   elements.activeMetric.textContent = progress;
@@ -634,12 +674,12 @@ function renderMetrics() {
 function renderPeople() {
   elements.peopleStrip.innerHTML = state.people
     .map((person) => {
-      const tasks = state.tasks.filter((task) => task.person === person);
+      const tasks = state.tasks.filter((task) => task.person === person && task.required);
       const activeTasks = tasks.filter((task) => task.status !== "na");
       const done = activeTasks.filter((task) => task.status === "done").length;
       const progress = activeTasks.filter((task) => task.status === "progress").length;
       const todo = activeTasks.filter((task) => task.status === "todo").length;
-      const percent = activeTasks.length ? Math.round((done / activeTasks.length) * 100) : 100;
+      const percent = activeTasks.length ? Math.round((done / activeTasks.length) * 100) : 0;
       const isSelected = state.filters.person === person;
 
       return `
@@ -652,6 +692,7 @@ function renderPeople() {
             <span class="progress-fill" style="width: ${percent}%"></span>
           </span>
           <span class="person-stats">
+            <span>요청 ${tasks.length}</span>
             <span>완료 ${done}</span>
             <span>진행 ${progress}</span>
             <span>미완료 ${todo}</span>
@@ -664,7 +705,9 @@ function renderPeople() {
 
 function renderTasks() {
   const tasks = getVisibleTasks();
-  elements.taskCountTitle.textContent = `서류 ${tasks.length}건`;
+  elements.taskCountTitle.textContent = state.mode === "catalog" ? `선택 가능 서류 ${tasks.length}건` : `요청서류 ${tasks.length}건`;
+  elements.emptyState.textContent =
+    state.mode === "catalog" ? "조건에 맞는 서류가 없습니다." : "요청된 서류가 없습니다. 서류 선택에서 필요한 항목을 요청하세요.";
   elements.emptyState.hidden = tasks.length > 0;
   elements.taskList.innerHTML = tasks.map(renderTaskCard).join("");
 }
@@ -672,8 +715,9 @@ function renderTasks() {
 function getVisibleTasks() {
   const search = state.filters.search.trim().toLocaleLowerCase("ko-KR");
   const filtered = state.tasks.filter((task) => {
+    if (state.mode === "requested" && !task.required) return false;
     if (state.filters.person !== "all" && task.person !== state.filters.person) return false;
-    if (state.filters.status !== "all" && task.status !== state.filters.status) return false;
+    if (state.mode === "requested" && state.filters.status !== "all" && task.status !== state.filters.status) return false;
     if (state.filters.category !== "all" && task.category !== state.filters.category) return false;
     if (!search) return true;
 
@@ -697,7 +741,30 @@ function renderTaskCard(task) {
   const note = task.note.trim() || "메모 없음";
   const detail = task.detail.trim() || "상세 없음";
   const statusClass = `is-${task.status}`;
-  const compactClass = state.viewMode === "compact" ? "compact" : "";
+  const compactClass = state.viewMode === "compact" || state.mode === "catalog" ? "compact" : "";
+  const requiredClass = task.required ? "is-required" : "is-unrequested";
+  const requestLabel = task.required ? "요청됨" : "미요청";
+  const actions =
+    state.mode === "catalog"
+      ? `
+          <label class="request-switch">
+            <input type="checkbox" data-action="required" ${task.required ? "checked" : ""} />
+            <span>${requestLabel}</span>
+          </label>
+          <button class="icon-button" type="button" data-action="edit" title="수정" aria-label="${escapeHtml(task.title)} 수정">
+            <span aria-hidden="true">✎</span>
+          </button>
+        `
+      : `
+          <select data-action="status" aria-label="${escapeHtml(task.title)} 상태">
+            ${Object.entries(STATUS)
+              .map(([value, label]) => `<option value="${value}" ${task.status === value ? "selected" : ""}>${label}</option>`)
+              .join("")}
+          </select>
+          <button class="icon-button" type="button" data-action="edit" title="수정" aria-label="${escapeHtml(task.title)} 수정">
+            <span aria-hidden="true">✎</span>
+          </button>
+        `;
   const fileChips = task.files.length
     ? task.files
         .map(
@@ -712,27 +779,21 @@ function renderTaskCard(task) {
     : '<span class="muted">기록된 파일 없음</span>';
 
   return `
-    <article class="task-card ${statusClass} ${compactClass}" data-task-id="${escapeHtml(task.id)}">
+    <article class="task-card ${statusClass} ${compactClass} ${requiredClass}" data-task-id="${escapeHtml(task.id)}">
       <div class="task-head">
         <div class="task-title">
           <h3>${escapeHtml(task.title)}</h3>
           <div class="task-meta">
             <span class="pill person">${escapeHtml(task.person)}</span>
             <span class="pill category">${escapeHtml(categoryLabel(task.category))}</span>
+            <span class="pill ${task.required ? "requested" : "unrequested"}">${requestLabel}</span>
             <span class="pill ${task.status}">${STATUS[task.status]}</span>
             <span>${escapeHtml(task.issuer || "발급처 미정")}</span>
             <span>${escapeHtml(dueText)}</span>
           </div>
         </div>
         <div class="task-actions">
-          <select data-action="status" aria-label="${escapeHtml(task.title)} 상태">
-            ${Object.entries(STATUS)
-              .map(([value, label]) => `<option value="${value}" ${task.status === value ? "selected" : ""}>${label}</option>`)
-              .join("")}
-          </select>
-          <button class="icon-button" type="button" data-action="edit" title="수정" aria-label="${escapeHtml(task.title)} 수정">
-            <span aria-hidden="true">✎</span>
-          </button>
+          ${actions}
         </div>
       </div>
       <div class="task-body">
@@ -794,6 +855,16 @@ function formatDate(value) {
 }
 
 function bindEvents() {
+  elements.requestedModeButton.addEventListener("click", () => {
+    state.mode = "requested";
+    render();
+  });
+
+  elements.catalogModeButton.addEventListener("click", () => {
+    state.mode = "catalog";
+    render();
+  });
+
   elements.personFilter.addEventListener("change", (event) => {
     state.filters.person = event.target.value;
     render();
@@ -840,6 +911,14 @@ function bindEvents() {
       return;
     }
 
+    if (event.target.dataset.action === "required") {
+      task.required = event.target.checked;
+      task.updatedAt = new Date().toISOString();
+      render();
+      showToast(task.required ? "요청서류에 추가했습니다." : "요청서류에서 제외했습니다.");
+      return;
+    }
+
     if (event.target.dataset.action === "files") {
       const names = Array.from(event.target.files || []).map((file) => file.name);
       task.files = unique([...task.files, ...names]);
@@ -869,6 +948,8 @@ function bindEvents() {
   });
 
   elements.addTaskButton.addEventListener("click", () => openTaskDialog());
+  elements.requestVisibleButton.addEventListener("click", () => setVisibleRequired(true));
+  elements.unrequestVisibleButton.addEventListener("click", () => setVisibleRequired(false));
   elements.resetButton.addEventListener("click", resetState);
   elements.copySummaryButton.addEventListener("click", copySummary);
   elements.exportButton.addEventListener("click", exportState);
@@ -898,12 +979,28 @@ function findTask(id) {
   return state.tasks.find((task) => task.id === id);
 }
 
+function setVisibleRequired(required) {
+  const tasks = getVisibleTasks();
+  if (!tasks.length) {
+    showToast("적용할 서류가 없습니다.");
+    return;
+  }
+  const now = new Date().toISOString();
+  tasks.forEach((task) => {
+    task.required = required;
+    task.updatedAt = now;
+  });
+  render();
+  showToast(required ? `${tasks.length}건을 요청서류로 표시했습니다.` : `${tasks.length}건을 요청서류에서 제외했습니다.`);
+}
+
 function openTaskDialog(task) {
   const isEdit = Boolean(task);
   elements.dialogTitle.textContent = isEdit ? "항목 수정" : "항목 추가";
   elements.deleteTaskButton.hidden = !isEdit;
   elements.editingTaskId.value = task?.id || "";
   elements.taskPerson.value = task?.person || (state.filters.person !== "all" ? state.filters.person : state.people[0]);
+  elements.taskRequired.checked = task?.required ?? true;
   elements.taskStatus.value = task?.status || "todo";
   elements.taskCategory.value = task?.category || (state.filters.category !== "all" ? state.filters.category : "core");
   elements.taskTitle.value = task?.title || "";
@@ -919,6 +1016,7 @@ function saveTaskFromDialog() {
   const existing = id ? findTask(id) : null;
   const values = {
     person: elements.taskPerson.value,
+    required: elements.taskRequired.checked,
     status: elements.taskStatus.value,
     category: elements.taskCategory.value,
     title: elements.taskTitle.value.trim(),
@@ -1048,7 +1146,7 @@ function buildSummary() {
 
   const lines = [`종합소득세 서류 준비 현황 (${date})`, ""];
   state.people.forEach((person) => {
-    const tasks = state.tasks.filter((task) => task.person === person);
+    const tasks = state.tasks.filter((task) => task.person === person && task.required);
     const activeTasks = tasks.filter((task) => task.status !== "na");
     const done = activeTasks.filter((task) => task.status === "done").length;
     lines.push(`[${person}] 완료 ${done}/${activeTasks.length}`);
