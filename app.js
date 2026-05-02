@@ -32,6 +32,13 @@ const DEFAULT_REQUIRED = {
   medical: ["오명숙", "이윤하"],
 };
 
+const DETAIL_REPLACEMENTS = {
+  "변경사항이 있으면 주민등록등본, 가족관계증명서 등 관련 증빙 준비. 없으면 해당없음으로 표시.":
+    "변경사항이 있으면 주민등록등본, 가족관계증명서 등 관련 증빙 준비. 없으면 업로드하지 않아도 됩니다.",
+  "전자기부금영수증과 별도 기부금영수증을 모두 확인. 없으면 해당없음으로 표시.":
+    "전자기부금영수증과 별도 기부금영수증을 모두 확인. 없으면 업로드하지 않아도 됩니다.",
+};
+
 const DEFAULT_TEMPLATES = [
   {
     key: "tax-help",
@@ -59,7 +66,7 @@ const DEFAULT_TEMPLATES = [
     category: "core",
     title: "주소지·결혼·자녀출생 등 변경사항",
     issuer: "정부24 / 주민센터",
-    detail: "변경사항이 있으면 주민등록등본, 가족관계증명서 등 관련 증빙 준비. 없으면 해당없음으로 표시.",
+    detail: "변경사항이 있으면 주민등록등본, 가족관계증명서 등 관련 증빙 준비. 없으면 업로드하지 않아도 됩니다.",
   },
   {
     key: "earned-income",
@@ -325,7 +332,7 @@ const DEFAULT_TEMPLATES = [
     category: "deduction",
     title: "기부금명세서·기부금영수증",
     issuer: "기부처 / 국세청",
-    detail: "전자기부금영수증과 별도 기부금영수증을 모두 확인. 없으면 해당없음으로 표시.",
+    detail: "전자기부금영수증과 별도 기부금영수증을 모두 확인. 없으면 업로드하지 않아도 됩니다.",
   },
   {
     key: "pension-saving",
@@ -600,7 +607,7 @@ function normalizeTask(task) {
     person: task.person || PEOPLE[0],
     title: task.title || "새 서류",
     issuer: task.issuer || "",
-    detail: task.detail || "",
+    detail: normalizeDetail(task.detail || ""),
     required: inferRequired(task, template),
     status: STATUS[task.status] ? task.status : "todo",
     due: task.due || "",
@@ -617,6 +624,10 @@ function inferRequired(task, template) {
   if (task.status && task.status !== "todo") return true;
   if (task.due || task.note || (Array.isArray(task.files) && task.files.length > 0)) return true;
   return isDefaultRequired(task.person || PEOPLE[0], task.templateKey);
+}
+
+function normalizeDetail(detail) {
+  return DETAIL_REPLACEMENTS[detail] || detail;
 }
 
 function mergeMissingTemplateTasks(baseState) {

@@ -17,7 +17,7 @@
             <span class="entry-badge">세무사</span>
             <h2>요청서류 설정</h2>
             <p>필요한 서류를 선택하고 가족에게 업로드 링크를 공유합니다.</p>
-            <button class="primary-button entry-action" id="startAccountantButton" type="button">세무사로 시작</button>
+            <button class="primary-button entry-action" id="startAccountantButton" type="button">요청서류 설정하기</button>
           </article>
           <article class="entry-card">
             <span class="entry-badge">일반 사용자</span>
@@ -25,7 +25,7 @@
             <p>세무사가 보내준 가족 링크로 들어오면 요청서류만 보고 파일을 올립니다.</p>
             <div class="entry-link-form">
               <input id="familyLinkInput" type="text" placeholder="가족 링크 또는 작업방 코드" />
-              <button class="primary-button entry-action" id="openFamilyLinkButton" type="button">업로드 화면 열기</button>
+              <button class="primary-button entry-action" id="openFamilyLinkButton" type="button">파일 올리러 가기</button>
             </div>
           </article>
         </div>
@@ -141,20 +141,20 @@
 
           <button class="wide-button" id="addTaskButton" type="button">
             <span aria-hidden="true">＋</span>
-            항목 추가
+            직접 추가
           </button>
           <button class="wide-button share-action" id="copyFamilyLinkButton" type="button">
             <span aria-hidden="true">⧉</span>
-            가족 링크 복사
+            업로드 링크 복사
           </button>
           <div class="catalog-actions" id="catalogActions" hidden>
             <button class="wide-button" id="requestVisibleButton" type="button">
               <span aria-hidden="true">✓</span>
-              보이는 항목 요청
+              현재 목록 요청
             </button>
             <button class="wide-button neutral" id="unrequestVisibleButton" type="button">
               <span aria-hidden="true">−</span>
-              보이는 항목 해제
+              현재 목록 해제
             </button>
           </div>
           <button class="wide-button danger" id="resetButton" type="button">
