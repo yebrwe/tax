@@ -540,7 +540,7 @@ function createDefaultState() {
     people: PEOPLE,
     tasks,
     filters: {
-      person: PEOPLE[0],
+      person: "all",
       status: "all",
       category: "all",
       search: "",
@@ -832,7 +832,12 @@ function render() {
     return;
   }
 
-  if (appRole === "family") state.mode = "requested";
+  if (appRole === "family") {
+    state.mode = "requested";
+    if (state.filters.person === "all" || !state.people.includes(state.filters.person)) {
+      state.filters.person = state.people[0];
+    }
+  }
   document.body.dataset.role = appRole;
   document.body.dataset.mode = state.mode;
 
@@ -1143,9 +1148,12 @@ function bindEvents() {
     appRole = "accountant";
     caseId = caseId || makeCaseId();
     localStorage.setItem(CASE_STORAGE_KEY, caseId);
-    state.mode = "catalog";
+    state.mode = "requested";
+    state.filters.person = "all";
     updateRoleInUrl();
     await loadRemoteCase();
+    state.mode = "requested";
+    state.filters.person = "all";
     render();
   });
 
@@ -1161,6 +1169,9 @@ function bindEvents() {
     state.mode = "requested";
     updateRoleInUrl();
     await loadRemoteCase();
+    if (state.filters.person === "all" || !state.people.includes(state.filters.person)) {
+      state.filters.person = state.people[0];
+    }
     render();
   });
 
@@ -1407,6 +1418,7 @@ function saveTaskFromDialog() {
 
   if (!values.title) {
     showToast("서류명을 입력하세요.");
+    elements.taskTitle.focus();
     return;
   }
 
@@ -1580,7 +1592,13 @@ async function initializeApp() {
   if (appRole) {
     updateRoleInUrl();
     await loadRemoteCase();
-    if (appRole === "accountant") state.mode = "catalog";
+    if (appRole === "accountant") {
+      state.mode = "requested";
+      state.filters.person = "all";
+    }
+    if (appRole === "family" && (state.filters.person === "all" || !state.people.includes(state.filters.person))) {
+      state.filters.person = state.people[0];
+    }
   }
   render();
 }

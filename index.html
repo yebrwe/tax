@@ -178,10 +178,10 @@
     </main>
 
     <dialog id="taskDialog">
-      <form method="dialog" id="taskForm">
+      <form method="dialog" id="taskForm" novalidate>
         <div class="dialog-header">
           <h2 id="dialogTitle">항목 추가</h2>
-          <button class="icon-button" value="cancel" type="submit" title="닫기" aria-label="닫기">
+          <button class="icon-button" value="cancel" type="submit" formnovalidate title="닫기" aria-label="닫기">
             <span aria-hidden="true">×</span>
           </button>
         </div>
@@ -218,7 +218,7 @@
         <div class="dialog-actions">
           <button class="text-button danger" id="deleteTaskButton" type="button">삭제</button>
           <div>
-            <button class="text-button" value="cancel" type="submit">취소</button>
+            <button class="text-button" value="cancel" type="submit" formnovalidate>취소</button>
             <button class="primary-button" id="saveTaskButton" type="submit" value="default">저장</button>
           </div>
         </div>

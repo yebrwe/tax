@@ -996,6 +996,198 @@ body[data-mode="catalog"] .status-control {
   display: none;
 }
 
+body[data-role="accountant"] {
+  background: #eef4f1;
+}
+
+body[data-role="accountant"] .app-header {
+  position: static;
+  min-height: 104px;
+  border-bottom: 0;
+  color: #fff;
+  background: #17362f;
+  backdrop-filter: none;
+}
+
+body[data-role="accountant"] .app-header h1 {
+  color: #fff;
+}
+
+body[data-role="accountant"] .app-header .eyebrow {
+  color: #7dd3c7;
+}
+
+body[data-role="accountant"] .header-actions .icon-button {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body[data-role="accountant"] main {
+  margin-top: 18px;
+}
+
+body[data-role="accountant"] .overview {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px;
+  background: var(--surface);
+}
+
+body[data-role="accountant"] .metric {
+  min-height: 72px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-role="accountant"] .metric + .metric {
+  border-left: 1px solid var(--line);
+}
+
+body[data-role="accountant"] .metric strong {
+  font-size: 1.75rem;
+}
+
+body[data-role="accountant"] .metric.highlight {
+  border-radius: var(--radius);
+  background: #edfdf9;
+}
+
+body[data-role="accountant"] .people-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+body[data-role="accountant"] .person-card {
+  flex: 1 0 190px;
+  min-height: 84px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+
+body[data-role="accountant"] .person-card.is-selected {
+  border-bottom-color: var(--accent);
+  box-shadow: var(--shadow-soft);
+}
+
+body[data-role="accountant"] .workspace {
+  grid-template-columns: 318px minmax(0, 1fr);
+}
+
+body[data-role="accountant"] .controls {
+  top: 18px;
+  border: 0;
+  color: #e3eee9;
+  background: #1d3029;
+  box-shadow: var(--shadow);
+}
+
+body[data-role="accountant"] .controls label,
+body[data-role="accountant"] .control-block label {
+  color: #b9cec5;
+}
+
+body[data-role="accountant"] .controls input,
+body[data-role="accountant"] .controls select,
+body[data-role="accountant"] .controls textarea {
+  border-color: #3b574e;
+  color: #f8fffb;
+  background: #10231d;
+}
+
+body[data-role="accountant"] .controls input::placeholder {
+  color: #90a59c;
+}
+
+body[data-role="accountant"] .mode-tabs,
+body[data-role="accountant"] .view-tabs {
+  border-color: #3b574e;
+  background: #10231d;
+}
+
+body[data-role="accountant"] .mode-tab {
+  color: #b9cec5;
+}
+
+body[data-role="accountant"] .mode-tab.is-active,
+body[data-role="accountant"] .tab.is-active {
+  color: #14342d;
+  background: #fff;
+}
+
+body[data-role="accountant"] .case-settings {
+  border-color: #3b574e;
+  background: #10231d;
+}
+
+body[data-role="accountant"] .case-settings summary {
+  color: #fff;
+}
+
+body[data-role="accountant"] .wide-button.neutral {
+  border-color: #4c675e;
+  color: #f8fffb;
+  background: transparent;
+}
+
+body[data-role="accountant"] .wide-button.danger {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+}
+
+body[data-role="accountant"] .panel-toolbar {
+  position: static;
+  border: 0;
+  padding: 4px 0 12px;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+body[data-role="accountant"] .task-card {
+  border: 0;
+  border-left: 4px solid #c7d0dd;
+  background: var(--surface);
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.08);
+}
+
+body[data-role="accountant"] .task-card.is-required {
+  border-left-color: var(--accent);
+}
+
+body[data-role="accountant"] .task-card.is-unrequested {
+  border-left-color: #cbd5e1;
+  background: #fbfcfe;
+}
+
+body[data-role="accountant"] .task-head {
+  padding: 16px 18px;
+}
+
+body[data-role="accountant"] .task-title h3 {
+  font-size: 1.02rem;
+}
+
+body[data-role="accountant"] .task-body {
+  padding: 14px 18px 18px;
+}
+
+body[data-role="accountant"] dialog {
+  width: min(560px, calc(100% - 32px));
+  border: 0;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.3);
+}
+
+body[data-role="accountant"] #taskForm {
+  padding: 22px;
+}
+
 @media (max-width: 1040px) {
   main {
     width: min(100% - 24px, 1120px);
@@ -1011,6 +1203,15 @@ body[data-mode="catalog"] .status-control {
   }
 
   .controls {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-role="accountant"] .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-role="accountant"] .controls {
     position: static;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
