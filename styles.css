@@ -1385,6 +1385,16 @@ body[data-role="accountant"] .catalog-actions {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+body[data-role="accountant"] .catalog-actions .wide-button.neutral {
+  border-color: var(--line-strong);
+  color: var(--text);
+  background: var(--surface);
+}
+
+body[data-role="accountant"] .catalog-actions .wide-button.neutral:hover {
+  background: var(--surface-soft);
+}
+
 body[data-role="accountant"] .filter-drawer {
   grid-column: 1 / -1;
 }
