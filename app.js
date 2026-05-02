@@ -421,8 +421,6 @@ const elements = {
   todoMetric: document.querySelector("#todoMetric"),
   progressMetric: document.querySelector("#progressMetric"),
   peopleStrip: document.querySelector("#peopleStrip"),
-  familyRoleButton: document.querySelector("#familyRoleButton"),
-  accountantRoleButton: document.querySelector("#accountantRoleButton"),
   requestedModeButton: document.querySelector("#requestedModeButton"),
   catalogModeButton: document.querySelector("#catalogModeButton"),
   personFilter: document.querySelector("#personFilter"),
@@ -752,11 +750,9 @@ function render() {
   document.body.dataset.screen = appRole ? "app" : "entry";
   if (!appRole) return;
 
+  if (appRole === "family") state.mode = "requested";
   document.body.dataset.role = appRole;
   document.body.dataset.mode = state.mode;
-  elements.familyRoleButton.classList.toggle("is-active", appRole === "family");
-  elements.accountantRoleButton.classList.toggle("is-active", appRole === "accountant");
-  if (appRole === "family") state.mode = "requested";
 
   elements.personFilter.value = state.mode === "catalog" ? "all" : state.filters.person;
   elements.statusFilter.value = state.mode === "catalog" ? "all" : state.filters.status;
@@ -1111,20 +1107,6 @@ function bindEvents() {
     state.mode = "requested";
     updateRoleInUrl();
     await loadRemoteCase();
-    render();
-  });
-
-  elements.familyRoleButton.addEventListener("click", () => {
-    appRole = "family";
-    state.mode = "requested";
-    updateRoleInUrl();
-    render();
-  });
-
-  elements.accountantRoleButton.addEventListener("click", () => {
-    appRole = "accountant";
-    state.mode = "catalog";
-    updateRoleInUrl();
     render();
   });
 
