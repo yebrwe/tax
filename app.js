@@ -454,6 +454,9 @@ const elements = {
   catalogActions: document.querySelector("#catalogActions"),
   requestVisibleButton: document.querySelector("#requestVisibleButton"),
   unrequestVisibleButton: document.querySelector("#unrequestVisibleButton"),
+  familyProgressPerson: document.querySelector("#familyProgressPerson"),
+  familyProgressText: document.querySelector("#familyProgressText"),
+  finishUploadButton: document.querySelector("#finishUploadButton"),
   resetButton: document.querySelector("#resetButton"),
   copySummaryButton: document.querySelector("#copySummaryButton"),
   exportButton: document.querySelector("#exportButton"),
@@ -862,13 +865,14 @@ function render() {
   renderMetrics();
   renderPeople();
   renderTasks();
+  renderFamilyProgress();
   saveState();
 }
 
 function renderMetrics() {
-  const activeTasks = state.tasks.filter((task) => task.required && task.status !== "na");
-  const done = activeTasks.filter((task) => task.status === "done").length;
-  const todo = activeTasks.filter((task) => task.status === "todo").length;
+  const activeTasks = state.tasks.filter((task) => task.required);
+  const done = activeTasks.filter(isResolvedTask).length;
+  const todo = activeTasks.length - done;
   const percent = activeTasks.length ? Math.round((done / activeTasks.length) * 100) : 0;
 
   elements.doneMetric.textContent = done;
@@ -881,10 +885,9 @@ function renderPeople() {
   elements.peopleStrip.innerHTML = state.people
     .map((person) => {
       const tasks = state.tasks.filter((task) => task.person === person && task.required);
-      const activeTasks = tasks.filter((task) => task.status !== "na");
-      const done = activeTasks.filter((task) => task.status === "done").length;
-      const todo = activeTasks.filter((task) => task.status === "todo").length;
-      const percent = activeTasks.length ? Math.round((done / activeTasks.length) * 100) : 0;
+      const done = tasks.filter(isResolvedTask).length;
+      const todo = tasks.length - done;
+      const percent = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
       const isSelected = state.filters.person === person;
 
       return `
@@ -930,6 +933,17 @@ function renderTasks() {
   elements.taskList.innerHTML = visibleItems.map(useGroupedRequests ? renderTaskGroupCard : renderTaskCard).join("");
 }
 
+function renderFamilyProgress() {
+  if (appRole !== "family") return;
+  const tasks = state.tasks.filter((task) => task.person === state.filters.person && task.required);
+  const resolved = tasks.filter(isResolvedTask).length;
+  const remaining = tasks.length - resolved;
+  elements.familyProgressPerson.textContent = `${state.filters.person}님`;
+  elements.familyProgressText.textContent = `${resolved}/${tasks.length} 처리`;
+  elements.finishUploadButton.disabled = remaining > 0 || !tasks.length;
+  elements.finishUploadButton.textContent = !tasks.length ? "요청 없음" : remaining > 0 ? `${remaining}건 남음` : "다 올렸어요";
+}
+
 function shouldRenderGroupedRequests() {
   return appRole === "accountant" && state.mode === "requested" && state.filters.person === "all";
 }
@@ -958,9 +972,10 @@ function groupRequestedTasks(tasks) {
     .map((group) => {
       group.tasks.sort(byPerson);
       group.doneCount = group.tasks.filter((task) => task.status === "done").length;
-      group.todoCount = group.tasks.filter((task) => task.status === "todo").length;
+      group.resolvedCount = group.tasks.filter(isResolvedTask).length;
+      group.todoCount = group.tasks.length - group.resolvedCount;
       group.fileCount = group.tasks.reduce((sum, task) => sum + task.files.length, 0);
-      group.status = group.doneCount === group.tasks.length ? "done" : "todo";
+      group.status = group.resolvedCount === group.tasks.length ? "done" : "todo";
       return group;
     })
     .sort((a, b) => byCategory(a, b) || byOrder(a, b) || a.title.localeCompare(b.title, "ko-KR"));
@@ -973,7 +988,8 @@ function getVisibleTasks() {
   const filtered = state.tasks.filter((task) => {
     if (state.mode === "requested" && !task.required) return false;
     if (state.filters.person !== "all" && task.person !== state.filters.person) return false;
-    if (state.mode === "requested" && state.filters.status !== "all" && task.status !== state.filters.status) return false;
+    if (state.mode === "requested" && state.filters.status === "todo" && isResolvedTask(task)) return false;
+    if (state.mode === "requested" && state.filters.status === "done" && !isResolvedTask(task)) return false;
     if (state.filters.category !== "all" && task.category !== state.filters.category) return false;
     if (!search) return true;
 
@@ -1061,14 +1077,23 @@ function renderTaskCard(task) {
       : editButton;
   const fileChips = task.files.length
     ? task.files.map((file) => renderFileChip(file, true)).join("")
-    : '<span class="muted">기록된 파일 없음</span>';
+    : task.status === "na"
+      ? '<span class="file-chip no-file">해당 없음</span>'
+      : '<span class="muted">기록된 파일 없음</span>';
+  const noFileButton =
+    appRole === "family"
+      ? task.status === "na"
+        ? '<button class="text-button no-file-button" type="button" data-action="mark-todo">취소</button>'
+        : '<button class="text-button no-file-button" type="button" data-action="mark-na">없어요</button>'
+      : "";
   const taskBody =
     appRole === "family"
       ? `
         <div class="task-body family-upload-body">
           <div class="file-tools">
-            <div class="file-row">
+            <div class="file-row family-file-row">
               <input type="file" multiple data-action="files" aria-label="${escapeHtml(task.title)} 파일 업로드" />
+              ${noFileButton}
             </div>
             <div class="file-list">${fileChips}</div>
           </div>
@@ -1119,12 +1144,16 @@ function renderTaskCard(task) {
 function renderTaskGroupCard(group) {
   const detail = group.detail.trim() || "상세 없음";
   const fileText = group.fileCount ? `업로드 ${group.fileCount}개` : "업로드 없음";
-  const statusText = group.doneCount === group.tasks.length ? "완료" : `${group.doneCount}/${group.tasks.length} 완료`;
+  const statusText = group.resolvedCount === group.tasks.length ? "처리 완료" : `${group.resolvedCount}/${group.tasks.length} 처리`;
   const peopleRows = group.tasks
     .map((task) => {
-      const files = task.files.length ? task.files.map((file) => renderFileChip(file, false)).join("") : '<span class="muted">업로드 없음</span>';
+      const files = task.files.length
+        ? task.files.map((file) => renderFileChip(file, false)).join("")
+        : task.status === "na"
+          ? '<span class="file-chip no-file">해당 없음</span>'
+          : '<span class="muted">업로드 없음</span>';
       return `
-        <div class="group-person-row ${task.status === "done" ? "is-done" : "is-todo"}">
+        <div class="group-person-row ${isResolvedTask(task) ? "is-done" : "is-todo"}">
           <div class="group-person-main">
             <strong>${escapeHtml(task.person)}</strong>
             <span class="pill ${task.status}">${STATUS[task.status]}</span>
@@ -1211,6 +1240,10 @@ async function uploadSelectedFiles(task, selectedFiles) {
 
 function statusRank(status) {
   return { todo: 1, progress: 2, done: 3, na: 4 }[status] || 5;
+}
+
+function isResolvedTask(task) {
+  return task.status === "done" || task.status === "na";
 }
 
 function byPerson(a, b) {
@@ -1351,6 +1384,21 @@ function bindEvents() {
       openTaskDialog(task);
     }
 
+    if (action === "mark-na") {
+      task.files = [];
+      task.status = "na";
+      task.updatedAt = new Date().toISOString();
+      render();
+      showToast("해당 없음으로 표시했습니다.");
+    }
+
+    if (action === "mark-todo") {
+      task.status = "todo";
+      task.updatedAt = new Date().toISOString();
+      render();
+      showToast("다시 업로드 대기 상태로 바꿨습니다.");
+    }
+
     if (action === "remove-file") {
       const file = event.target.dataset.file;
       task.files = task.files.filter((item) => (item.pathname || item.url || item.name) !== file);
@@ -1362,6 +1410,7 @@ function bindEvents() {
 
   elements.addTaskButton.addEventListener("click", () => openTaskDialog());
   elements.copyFamilyLinkButton.addEventListener("click", copyFamilyLink);
+  elements.finishUploadButton.addEventListener("click", finishFamilyUpload);
   elements.requestVisibleButton.addEventListener("click", () => setVisibleRequired(true));
   elements.unrequestVisibleButton.addEventListener("click", () => setVisibleRequired(false));
   elements.resetButton.addEventListener("click", resetState);
@@ -1432,6 +1481,18 @@ async function copyFamilyLink() {
   url.searchParams.set("role", "family");
   await copyText(url.toString());
   showToast("가족용 링크를 복사했습니다.");
+}
+
+async function finishFamilyUpload() {
+  const tasks = state.tasks.filter((task) => task.person === state.filters.person && task.required);
+  const remaining = tasks.filter((task) => !isResolvedTask(task));
+  if (remaining.length) {
+    showToast(`아직 ${remaining.length}건이 남아 있습니다.`);
+    return;
+  }
+
+  await saveCaseState();
+  showToast("완료 상태를 저장했습니다.");
 }
 
 async function copyText(text) {
@@ -1641,9 +1702,8 @@ function buildSummary() {
   const lines = [`${state.settings.title} 준비 현황 (${formatCaseLabel(state.settings)}, ${date})`, ""];
   state.people.forEach((person) => {
     const tasks = state.tasks.filter((task) => task.person === person && task.required);
-    const activeTasks = tasks.filter((task) => task.status !== "na");
-    const done = activeTasks.filter((task) => task.status === "done").length;
-    lines.push(`[${person}] 완료 ${done}/${activeTasks.length}`);
+    const done = tasks.filter(isResolvedTask).length;
+    lines.push(`[${person}] 처리 ${done}/${tasks.length}`);
 
     ["todo", "progress", "done", "na"].forEach((status) => {
       const matching = tasks.filter((task) => task.status === status);

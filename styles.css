@@ -86,6 +86,15 @@ h3 {
   letter-spacing: 0;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 main {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto 56px;
@@ -951,6 +960,12 @@ body[data-role="family"] .task-card {
   box-shadow: var(--shadow-soft);
 }
 
+body[data-role="family"] .task-card.is-na {
+  opacity: 1;
+  border-color: #dde3eb;
+  background: #fbfcfe;
+}
+
 body[data-role="family"] .task-card.compact .task-body {
   display: grid;
 }
@@ -984,6 +999,72 @@ body[data-role="family"] .file-row input::file-selector-button {
 
 .family-upload-body {
   gap: 10px;
+}
+
+.family-progress-card {
+  display: none;
+}
+
+body[data-role="family"] .family-progress-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+body[data-role="family"] .family-progress-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+body[data-role="family"] .family-progress-card strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 1.16rem;
+  line-height: 1.2;
+}
+
+body[data-role="family"] .family-progress-card .primary-button {
+  min-width: 112px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+body[data-role="family"] .family-progress-card .primary-button:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  background: #eef2f7;
+  cursor: default;
+}
+
+.family-file-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.no-file-button {
+  min-width: 72px;
+  min-height: 58px;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.no-file-button:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+}
+
+.file-chip.no-file {
+  color: #445066;
+  background: #eef2f7;
 }
 
 .family-detail {
@@ -1753,6 +1834,10 @@ body[data-role="accountant"] .task-list.is-grouped .task-card {
   .controls {
     grid-template-columns: 1fr;
   }
+}
+
+body[data-role="family"] .no-file-button {
+  min-height: 58px;
 }
 
 @media print {

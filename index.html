@@ -24,6 +24,7 @@
             <h2>파일 업로드</h2>
             <p>세무사가 보내준 가족 링크로 들어오면 요청서류만 보고 파일을 올립니다.</p>
             <div class="entry-link-form">
+              <label class="sr-only" for="familyLinkInput">가족 링크 또는 작업방 코드</label>
               <input id="familyLinkInput" type="text" placeholder="가족 링크 또는 작업방 코드" />
               <button class="primary-button entry-action" id="openFamilyLinkButton" type="button">파일 올리러 가기</button>
             </div>
@@ -171,6 +172,14 @@
             </div>
           </details>
         </aside>
+
+        <section class="family-progress-card" id="familyProgressCard" aria-label="업로드 현황">
+          <div>
+            <span id="familyProgressPerson">선택된 대상자</span>
+            <strong id="familyProgressText">0/0 처리</strong>
+          </div>
+          <button class="primary-button" id="finishUploadButton" type="button">다 올렸어요</button>
+        </section>
 
         <section class="task-panel" aria-label="서류 항목">
           <div class="panel-toolbar">
