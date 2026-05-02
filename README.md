@@ -1,0 +1,52 @@
+# 종합소득세 서류 관리
+
+종합소득세 신고 준비서류를 사람별로 관리하는 모바일 중심 정적 웹앱입니다. 브라우저 `localStorage`에 저장되며, JSON 백업으로 내보내고 다시 불러올 수 있습니다.
+
+기본 체크리스트는 국세청 종합소득세 신고 안내의 제출대상서류, 소득공제·세액공제 증빙, 장부기장의무 관련 자료를 바탕으로 구성했습니다.
+
+## 주요 기능
+
+- 대상자별 진행률과 전체 진행률 확인
+- 기본/신고, 소득자료, 사업/프리랜서, 부동산임대, 공제/감면, 가족/인적공제 카테고리 필터
+- 상태 관리: 미완료, 진행중, 완료, 해당없음
+- 서류별 메모, 목표일, 파일명 기록
+- 요약 복사, JSON 백업/복원, 인쇄
+- 모바일에서 한 대상자씩 빠르게 확인하도록 기본 필터와 카드 레이아웃 최적화
+
+## 참고 기준
+
+- 국세청 종합소득세 신고납부기한 및 제출대상서류: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7665&mi=2225
+- 국세청 종합소득세 세액계산 흐름도: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7666&mi=2226
+
+## 로컬 실행
+
+```bash
+npm run dev
+```
+
+브라우저에서 `http://127.0.0.1:4173`을 엽니다.
+
+## 점검
+
+```bash
+npm run check
+```
+
+## Vercel 배포
+
+### GitHub로 배포
+
+1. 이 폴더를 GitHub 저장소로 올립니다.
+2. Vercel에서 `Add New Project`를 선택하고 저장소를 가져옵니다.
+3. Framework Preset은 `Other`로 둡니다.
+4. Build Command와 Output Directory는 비워둡니다.
+5. Deploy를 누릅니다.
+
+### CLI로 바로 배포
+
+```bash
+npx vercel
+npx vercel --prod
+```
+
+처음 실행할 때 Vercel 로그인과 프로젝트 연결을 진행하면 됩니다.

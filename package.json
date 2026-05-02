@@ -1,0 +1,10 @@
+{
+  "name": "tax-document-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "check": "node --check app.js",
+    "dev": "python3 -m http.server 4173",
+    "deploy": "npx vercel --prod"
+  }
+}
