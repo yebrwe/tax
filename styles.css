@@ -180,6 +180,7 @@ body[data-role="family"] .header-actions,
 body[data-role="family"] .overview,
 body[data-role="family"] .people-strip,
 body[data-role="family"] .share-action,
+body[data-role="family"] .case-settings,
 body[data-role="family"] #addTaskButton,
 body[data-role="family"] #resetButton {
   display: none;
@@ -401,7 +402,42 @@ dialog {
 }
 
 .controls .mode-tabs,
+.controls .case-settings,
 .controls .catalog-actions {
+  grid-column: 1 / -1;
+}
+
+.case-settings {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.case-settings summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.case-settings-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 10px 10px;
+}
+
+.case-settings-body label {
+  display: grid;
+  gap: 7px;
+}
+
+.case-settings-body .wide {
   grid-column: 1 / -1;
 }
 
@@ -916,6 +952,10 @@ dialog::backdrop {
     margin-bottom: 0;
   }
 
+  .case-settings {
+    margin-bottom: 0;
+  }
+
   .wide-button {
     margin-top: 0;
   }
@@ -992,7 +1032,7 @@ dialog::backdrop {
     padding: 12px;
   }
 
-  .controls .control-block:nth-child(5) {
+  .controls .search-control {
     grid-column: 1 / -1;
   }
 

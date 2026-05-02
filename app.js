@@ -1,5 +1,6 @@
 const STORAGE_KEY = "tax-document-tracker-v1";
 const CASE_STORAGE_KEY = "tax-document-tracker-case-id";
+const DEFAULT_CASE_TITLE = "종합소득세 서류 관리";
 
 const PEOPLE = ["이윤하", "오명숙", "이훈경", "이훈"];
 
@@ -9,6 +10,7 @@ const STATUS = {
   done: "완료",
   na: "해당없음",
 };
+const SORT_VALUES = ["person", "category", "status", "title"];
 
 const CATEGORIES = [
   { key: "core", label: "기본/신고" },
@@ -413,9 +415,18 @@ const DEFAULT_TEMPLATES = [
 
 const elements = {
   entryScreen: document.querySelector("#entryScreen"),
+  entryEyebrow: document.querySelector("#entryEyebrow"),
+  entryTitle: document.querySelector("#entryTitle"),
+  appEyebrow: document.querySelector("#appEyebrow"),
+  appTitle: document.querySelector("#appTitle"),
   startAccountantButton: document.querySelector("#startAccountantButton"),
   familyLinkInput: document.querySelector("#familyLinkInput"),
   openFamilyLinkButton: document.querySelector("#openFamilyLinkButton"),
+  caseSettings: document.querySelector("#caseSettings"),
+  caseTitleInput: document.querySelector("#caseTitleInput"),
+  taxYearInput: document.querySelector("#taxYearInput"),
+  filingYearInput: document.querySelector("#filingYearInput"),
+  filingMonthInput: document.querySelector("#filingMonthInput"),
   doneMetric: document.querySelector("#doneMetric"),
   activeMetric: document.querySelector("#activeMetric"),
   todoMetric: document.querySelector("#todoMetric"),
@@ -448,12 +459,9 @@ const elements = {
   dialogTitle: document.querySelector("#dialogTitle"),
   editingTaskId: document.querySelector("#editingTaskId"),
   taskPerson: document.querySelector("#taskPerson"),
-  taskRequired: document.querySelector("#taskRequired"),
-  taskStatus: document.querySelector("#taskStatus"),
   taskCategory: document.querySelector("#taskCategory"),
   taskTitle: document.querySelector("#taskTitle"),
   taskIssuer: document.querySelector("#taskIssuer"),
-  taskDue: document.querySelector("#taskDue"),
   taskDetail: document.querySelector("#taskDetail"),
   taskNote: document.querySelector("#taskNote"),
   deleteTaskButton: document.querySelector("#deleteTaskButton"),
@@ -466,6 +474,34 @@ let state = loadState();
 let toastTimer;
 let saveTimer;
 let isLoadingRemote = false;
+
+function getDefaultCaseSettings() {
+  const filingYear = new Date().getFullYear();
+  return {
+    title: DEFAULT_CASE_TITLE,
+    taxYear: String(filingYear - 1),
+    filingYear: String(filingYear),
+    filingMonth: "5",
+  };
+}
+
+function normalizeCaseSettings(settings = {}) {
+  const fallback = getDefaultCaseSettings();
+  const filingMonth = Number(settings.filingMonth);
+
+  return {
+    title: String(settings.title || "").trim() || fallback.title,
+    taxYear: normalizeYear(settings.taxYear) || fallback.taxYear,
+    filingYear: normalizeYear(settings.filingYear) || fallback.filingYear,
+    filingMonth: filingMonth >= 1 && filingMonth <= 12 ? String(filingMonth) : fallback.filingMonth,
+  };
+}
+
+function normalizeYear(value) {
+  const year = Number(value);
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) return "";
+  return String(year);
+}
 
 function createDefaultState() {
   const tasks = [];
@@ -493,6 +529,7 @@ function createDefaultState() {
   });
 
   return {
+    settings: getDefaultCaseSettings(),
     people: PEOPLE,
     tasks,
     filters: {
@@ -517,6 +554,7 @@ function loadState() {
     const migrated = {
       ...fallback,
       ...parsed,
+      settings: normalizeCaseSettings(parsed.settings),
       filters: { ...fallback.filters, ...(parsed.filters || {}) },
       people: unique([...PEOPLE, ...parsed.people]),
       tasks: parsed.tasks.map(normalizeTask),
@@ -662,10 +700,12 @@ async function loadRemoteCase() {
     if (!response.ok) throw new Error("Case load failed");
     const remoteState = await response.json();
     if (Array.isArray(remoteState.tasks) && Array.isArray(remoteState.people)) {
+      const fallback = createDefaultState();
       state = {
-        ...createDefaultState(),
+        ...fallback,
         ...remoteState,
-        filters: { ...createDefaultState().filters, ...(state.filters || {}) },
+        settings: normalizeCaseSettings(remoteState.settings),
+        filters: { ...fallback.filters, ...(state.filters || {}) },
         people: unique([...PEOPLE, ...remoteState.people]),
         tasks: remoteState.tasks.map(normalizeTask),
       };
@@ -738,22 +778,55 @@ function setupSelects() {
       (category) => `<option value="${escapeHtml(category.key)}">${escapeHtml(category.label)}</option>`,
     ),
   ].join("");
-  elements.taskPerson.innerHTML = state.people
-    .map((person) => `<option value="${escapeHtml(person)}">${escapeHtml(person)}</option>`)
-    .join("");
+  setTaskPersonOptions(false);
   elements.taskCategory.innerHTML = CATEGORIES.map(
     (category) => `<option value="${escapeHtml(category.key)}">${escapeHtml(category.label)}</option>`,
   ).join("");
 }
 
+function setTaskPersonOptions(includeAll) {
+  elements.taskPerson.innerHTML = [
+    includeAll ? '<option value="all">전체 대상자</option>' : "",
+    ...state.people.map((person) => `<option value="${escapeHtml(person)}">${escapeHtml(person)}</option>`),
+  ].join("");
+}
+
+function renderCaseHeader() {
+  state.settings = normalizeCaseSettings(state.settings);
+  const label = formatCaseLabel(state.settings);
+  document.title = state.settings.title;
+  elements.entryEyebrow.textContent = label;
+  elements.appEyebrow.textContent = label;
+  elements.entryTitle.textContent = state.settings.title;
+  elements.appTitle.textContent = state.settings.title;
+  elements.caseTitleInput.value = state.settings.title;
+  elements.taxYearInput.value = state.settings.taxYear;
+  elements.filingYearInput.value = state.settings.filingYear;
+  elements.filingMonthInput.value = state.settings.filingMonth;
+}
+
+function formatCaseLabel(settings) {
+  const parts = [];
+  if (settings.taxYear) parts.push(`${settings.taxYear}년 귀속`);
+  if (settings.filingYear && settings.filingMonth) parts.push(`${settings.filingYear}년 ${settings.filingMonth}월 신고 준비`);
+  return parts.join(" · ") || "신고 준비";
+}
+
 function render() {
+  renderCaseHeader();
   document.body.dataset.screen = appRole ? "app" : "entry";
-  if (!appRole) return;
+  if (!appRole) {
+    delete document.body.dataset.role;
+    delete document.body.dataset.mode;
+    return;
+  }
 
   if (appRole === "family") state.mode = "requested";
   document.body.dataset.role = appRole;
   document.body.dataset.mode = state.mode;
 
+  if (!SORT_VALUES.includes(state.filters.sort)) state.filters.sort = "category";
+  if (!["all", "todo", "done"].includes(state.filters.status)) state.filters.status = "all";
   elements.personFilter.value = state.mode === "catalog" ? "all" : state.filters.person;
   elements.statusFilter.value = state.mode === "catalog" ? "all" : state.filters.status;
   elements.categoryFilter.value = state.filters.category;
@@ -776,12 +849,11 @@ function render() {
 function renderMetrics() {
   const activeTasks = state.tasks.filter((task) => task.required && task.status !== "na");
   const done = activeTasks.filter((task) => task.status === "done").length;
-  const progress = activeTasks.filter((task) => task.status === "progress").length;
   const todo = activeTasks.filter((task) => task.status === "todo").length;
   const percent = activeTasks.length ? Math.round((done / activeTasks.length) * 100) : 0;
 
   elements.doneMetric.textContent = done;
-  elements.activeMetric.textContent = progress;
+  elements.activeMetric.textContent = activeTasks.length;
   elements.todoMetric.textContent = todo;
   elements.progressMetric.textContent = `${percent}%`;
 }
@@ -792,7 +864,6 @@ function renderPeople() {
       const tasks = state.tasks.filter((task) => task.person === person && task.required);
       const activeTasks = tasks.filter((task) => task.status !== "na");
       const done = activeTasks.filter((task) => task.status === "done").length;
-      const progress = activeTasks.filter((task) => task.status === "progress").length;
       const todo = activeTasks.filter((task) => task.status === "todo").length;
       const percent = activeTasks.length ? Math.round((done / activeTasks.length) * 100) : 0;
       const isSelected = state.filters.person === person;
@@ -809,7 +880,6 @@ function renderPeople() {
           <span class="person-stats">
             <span>요청 ${tasks.length}</span>
             <span>완료 ${done}</span>
-            <span>진행 ${progress}</span>
             <span>미완료 ${todo}</span>
           </span>
         </button>
@@ -856,7 +926,6 @@ function getVisibleTasks() {
   return filtered.sort((a, b) => {
     if (state.filters.sort === "category") return byCategory(a, b) || byPerson(a, b) || byOrder(a, b);
     if (state.filters.sort === "status") return statusRank(a.status) - statusRank(b.status) || byPerson(a, b) || byOrder(a, b);
-    if (state.filters.sort === "due") return byDue(a, b) || byPerson(a, b) || byOrder(a, b);
     if (state.filters.sort === "title") return a.title.localeCompare(b.title, "ko-KR") || byPerson(a, b);
     return byPerson(a, b) || byOrder(a, b) || a.title.localeCompare(b.title, "ko-KR");
   });
@@ -905,7 +974,6 @@ function getVisibleCatalogItems() {
 }
 
 function renderTaskCard(task) {
-  const dueText = task.due ? formatDate(task.due) : "목표일 미정";
   const note = task.note.trim() || "메모 없음";
   const detail = task.detail.trim() || "상세 없음";
   const statusClass = `is-${task.status}`;
@@ -930,14 +998,7 @@ function renderTaskCard(task) {
         `
       : appRole === "family"
         ? ""
-      : `
-          <select data-action="status" aria-label="${escapeHtml(task.title)} 상태">
-            ${Object.entries(STATUS)
-              .map(([value, label]) => `<option value="${value}" ${task.status === value ? "selected" : ""}>${label}</option>`)
-              .join("")}
-          </select>
-          ${editButton}
-        `;
+      : editButton;
   const fileChips = task.files.length
     ? task.files
         .map(
@@ -999,7 +1060,6 @@ function renderTaskCard(task) {
             <span class="pill ${task.required || task.partiallyRequired ? "requested" : "unrequested"}">${requestLabel}</span>
             ${state.mode === "catalog" ? "" : `<span class="pill ${task.status}">${STATUS[task.status]}</span>`}
             <span>${escapeHtml(task.issuer || "발급처 미정")}</span>
-            ${state.mode === "catalog" ? "" : `<span>${escapeHtml(dueText)}</span>`}
           </div>
         </div>
         <div class="task-actions">
@@ -1054,13 +1114,6 @@ function byPerson(a, b) {
   return state.people.indexOf(a.person) - state.people.indexOf(b.person);
 }
 
-function byDue(a, b) {
-  if (!a.due && !b.due) return 0;
-  if (!a.due) return 1;
-  if (!b.due) return -1;
-  return a.due.localeCompare(b.due);
-}
-
 function byOrder(a, b) {
   return (a.order ?? 999) - (b.order ?? 999);
 }
@@ -1072,16 +1125,6 @@ function byCategory(a, b) {
 function categoryRank(key) {
   const index = CATEGORIES.findIndex((category) => category.key === key);
   return index >= 0 ? index : 999;
-}
-
-function formatDate(value) {
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return value;
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(year, month - 1, day));
 }
 
 function bindEvents() {
@@ -1145,6 +1188,10 @@ function bindEvents() {
     render();
   });
 
+  [elements.caseTitleInput, elements.taxYearInput, elements.filingYearInput, elements.filingMonthInput].forEach((input) => {
+    input.addEventListener("change", updateCaseSettingsFromForm);
+  });
+
   elements.peopleStrip.addEventListener("click", (event) => {
     const card = event.target.closest("[data-person-card]");
     if (!card) return;
@@ -1157,14 +1204,6 @@ function bindEvents() {
     const taskCard = event.target.closest("[data-task-id]");
     if (!taskCard) return;
     const task = findTask(taskCard.dataset.taskId);
-
-    if (event.target.dataset.action === "status") {
-      if (!task) return;
-      task.status = event.target.value;
-      task.updatedAt = new Date().toISOString();
-      render();
-      return;
-    }
 
     if (event.target.dataset.action === "required") {
       setTemplateRequired(taskCard.dataset.templateKey, event.target.checked);
@@ -1205,6 +1244,7 @@ function bindEvents() {
     if (action === "remove-file") {
       const file = event.target.dataset.file;
       task.files = task.files.filter((item) => (item.pathname || item.url || item.name) !== file);
+      task.status = task.files.length ? "done" : "todo";
       task.updatedAt = new Date().toISOString();
       render();
     }
@@ -1261,6 +1301,16 @@ function parseCaseId(value) {
   } catch {
     return /^[a-zA-Z0-9_-]{8,80}$/.test(value) ? value : "";
   }
+}
+
+function updateCaseSettingsFromForm() {
+  state.settings = normalizeCaseSettings({
+    title: elements.caseTitleInput.value,
+    taxYear: elements.taxYearInput.value,
+    filingYear: elements.filingYearInput.value,
+    filingMonth: elements.filingMonthInput.value,
+  });
+  render();
 }
 
 async function copyFamilyLink() {
@@ -1320,13 +1370,11 @@ function openTaskDialog(task) {
   elements.dialogTitle.textContent = isEdit ? "항목 수정" : "항목 추가";
   elements.deleteTaskButton.hidden = !isEdit;
   elements.editingTaskId.value = task?.id || "";
-  elements.taskPerson.value = task?.person || (state.filters.person !== "all" ? state.filters.person : state.people[0]);
-  elements.taskRequired.checked = task?.required ?? true;
-  elements.taskStatus.value = task?.status || "todo";
-  elements.taskCategory.value = task?.category || (state.filters.category !== "all" ? state.filters.category : "core");
+  setTaskPersonOptions(!isEdit);
+  elements.taskPerson.value = isEdit ? task.person : "all";
+  elements.taskCategory.value = task?.category || (state.filters.category !== "all" ? state.filters.category : "tax-request");
   elements.taskTitle.value = task?.title || "";
   elements.taskIssuer.value = task?.issuer || "";
-  elements.taskDue.value = task?.due || "";
   elements.taskDetail.value = task?.detail || "";
   elements.taskNote.value = task?.note || "";
   elements.taskDialog.showModal();
@@ -1337,12 +1385,10 @@ function saveTaskFromDialog() {
   const existing = id ? findTask(id) : null;
   const values = {
     person: elements.taskPerson.value,
-    required: elements.taskRequired.checked,
-    status: elements.taskStatus.value,
+    required: true,
     category: elements.taskCategory.value,
     title: elements.taskTitle.value.trim(),
     issuer: elements.taskIssuer.value.trim(),
-    due: elements.taskDue.value,
     detail: elements.taskDetail.value.trim(),
     note: elements.taskNote.value.trim(),
     updatedAt: new Date().toISOString(),
@@ -1354,16 +1400,31 @@ function saveTaskFromDialog() {
   }
 
   if (existing) {
-    Object.assign(existing, values);
-  } else {
-    state.tasks.push({
-      id: makeId(),
-      templateKey: "custom",
-      category: values.category,
-      order: 999,
-      files: [],
-      createdAt: new Date().toISOString(),
+    Object.assign(existing, {
       ...values,
+      status: existing.files.length ? "done" : "todo",
+      due: existing.due || "",
+    });
+  } else {
+    const targetPeople = values.person === "all" ? state.people : [values.person];
+    targetPeople.forEach((person) => {
+      state.tasks.push({
+        id: makeId(),
+        templateKey: "custom",
+        category: values.category,
+        order: 999,
+        person,
+        required: true,
+        status: "todo",
+        due: "",
+        title: values.title,
+        issuer: values.issuer,
+        detail: values.detail,
+        note: values.note,
+        files: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: values.updatedAt,
+      });
     });
   }
 
@@ -1405,7 +1466,7 @@ function exportState() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `tax-documents-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `tax-documents-${state.settings.taxYear}-for-${state.settings.filingYear}-${state.settings.filingMonth.padStart(2, "0")}-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.append(link);
   link.click();
   link.remove();
@@ -1423,6 +1484,7 @@ function importState(event) {
       state = {
         ...createDefaultState(),
         ...parsed,
+        settings: normalizeCaseSettings(parsed.settings),
         people: Array.isArray(parsed.people) ? unique([...PEOPLE, ...parsed.people]) : PEOPLE,
         tasks: parsed.tasks.map(normalizeTask),
         filters: createDefaultState().filters,
@@ -1465,7 +1527,7 @@ function buildSummary() {
     day: "2-digit",
   }).format(new Date());
 
-  const lines = [`종합소득세 서류 준비 현황 (${date})`, ""];
+  const lines = [`${state.settings.title} 준비 현황 (${formatCaseLabel(state.settings)}, ${date})`, ""];
   state.people.forEach((person) => {
     const tasks = state.tasks.filter((task) => task.person === person && task.required);
     const activeTasks = tasks.filter((task) => task.status !== "na");

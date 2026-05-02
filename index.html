@@ -10,8 +10,8 @@
   <body data-screen="entry">
     <section class="entry-screen" id="entryScreen" aria-label="역할 선택">
       <div class="entry-inner">
-        <p class="eyebrow">2026년 5월 신고 준비</p>
-        <h1>종합소득세 서류 관리</h1>
+        <p class="eyebrow" id="entryEyebrow">신고 준비</p>
+        <h1 id="entryTitle">종합소득세 서류 관리</h1>
         <div class="entry-options">
           <article class="entry-card">
             <span class="entry-badge">세무사</span>
@@ -34,8 +34,8 @@
 
     <header class="app-header">
       <div>
-        <p class="eyebrow">2026년 5월 신고 준비</p>
-        <h1>종합소득세 서류 관리</h1>
+        <p class="eyebrow" id="appEyebrow">신고 준비</p>
+        <h1 id="appTitle">종합소득세 서류 관리</h1>
       </div>
       <div class="header-actions" aria-label="데이터 작업">
         <button class="icon-button" id="copySummaryButton" type="button" title="요약 복사" aria-label="요약 복사">
@@ -61,7 +61,7 @@
           <strong id="doneMetric">0</strong>
         </article>
         <article class="metric">
-          <span class="metric-label">진행중</span>
+          <span class="metric-label">요청</span>
           <strong id="activeMetric">0</strong>
         </article>
         <article class="metric">
@@ -83,6 +83,28 @@
             <button class="mode-tab" id="catalogModeButton" type="button">서류 선택</button>
           </div>
 
+          <details class="case-settings" id="caseSettings">
+            <summary>신고 설정</summary>
+            <div class="case-settings-body">
+              <label class="wide">
+                제목
+                <input id="caseTitleInput" type="text" />
+              </label>
+              <label>
+                귀속연도
+                <input id="taxYearInput" type="number" inputmode="numeric" min="2000" max="2100" />
+              </label>
+              <label>
+                신고연도
+                <input id="filingYearInput" type="number" inputmode="numeric" min="2000" max="2100" />
+              </label>
+              <label>
+                신고월
+                <input id="filingMonthInput" type="number" inputmode="numeric" min="1" max="12" />
+              </label>
+            </div>
+          </details>
+
           <div class="control-block person-control">
             <label for="personFilter">대상자</label>
             <select id="personFilter"></select>
@@ -93,9 +115,7 @@
             <select id="statusFilter">
               <option value="all">전체</option>
               <option value="todo">미완료</option>
-              <option value="progress">진행중</option>
               <option value="done">완료</option>
-              <option value="na">해당없음</option>
             </select>
           </div>
 
@@ -115,7 +135,6 @@
               <option value="person">대상자순</option>
               <option value="category">카테고리순</option>
               <option value="status">상태순</option>
-              <option value="due">목표일순</option>
               <option value="title">서류명순</option>
             </select>
           </div>
@@ -171,21 +190,8 @@
 
         <div class="form-grid">
           <label>
-            대상자
+            요청 대상
             <select id="taskPerson" required></select>
-          </label>
-          <label class="check-label">
-            <input id="taskRequired" type="checkbox" />
-            요청서류로 표시
-          </label>
-          <label>
-            상태
-            <select id="taskStatus" required>
-              <option value="todo">미완료</option>
-              <option value="progress">진행중</option>
-              <option value="done">완료</option>
-              <option value="na">해당없음</option>
-            </select>
           </label>
           <label>
             카테고리
@@ -193,23 +199,19 @@
           </label>
           <label class="wide">
             서류명
-            <input id="taskTitle" type="text" required />
+            <input id="taskTitle" type="text" required placeholder="예: 임대차계약서 사본" />
           </label>
           <label>
             발급처
-            <input id="taskIssuer" type="text" />
-          </label>
-          <label>
-            목표일
-            <input id="taskDue" type="date" />
+            <input id="taskIssuer" type="text" placeholder="예: 은행, 홈택스, 구청" />
           </label>
           <label class="wide">
-            상세
-            <textarea id="taskDetail" rows="3"></textarea>
+            요청 메모
+            <textarea id="taskDetail" rows="3" placeholder="필요한 범위나 주의사항만 입력"></textarea>
           </label>
           <label class="wide">
-            메모
-            <textarea id="taskNote" rows="3"></textarea>
+            내부 메모
+            <textarea id="taskNote" rows="3" placeholder="세무사가 볼 참고사항"></textarea>
           </label>
         </div>
 
