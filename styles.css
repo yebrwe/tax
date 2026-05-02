@@ -34,6 +34,12 @@ body {
     var(--bg);
 }
 
+body[data-screen="app"] .entry-screen,
+body[data-screen="entry"] .app-header,
+body[data-screen="entry"] main {
+  display: none;
+}
+
 button,
 input,
 select,
@@ -48,6 +54,69 @@ button {
 main {
   width: min(1440px, calc(100% - 32px));
   margin: 0 auto 48px;
+}
+
+.entry-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.entry-inner {
+  width: min(860px, 100%);
+}
+
+.entry-inner h1 {
+  margin-bottom: 22px;
+}
+
+.entry-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.entry-card {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+}
+
+.entry-card h2 {
+  font-size: 1.28rem;
+}
+
+.entry-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.entry-badge {
+  width: max-content;
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: #064e3b;
+  background: #ccefe4;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.entry-link-form {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.entry-action {
+  width: 100%;
+  margin-top: auto;
 }
 
 .app-header {
@@ -134,10 +203,69 @@ h2 {
 
 body[data-role="family"] .mode-tabs,
 body[data-role="family"] .role-switch,
+body[data-role="family"] .header-actions,
+body[data-role="family"] .overview,
+body[data-role="family"] .people-strip,
 body[data-role="family"] .share-action,
 body[data-role="family"] #addTaskButton,
 body[data-role="family"] #resetButton {
   display: none;
+}
+
+body[data-role="family"] .status-control,
+body[data-role="family"] .category-control,
+body[data-role="family"] .search-control,
+body[data-role="family"] .sort-control,
+body[data-role="family"] .view-tabs,
+body[data-role="family"] .task-actions {
+  display: none;
+}
+
+body[data-role="family"] .workspace {
+  display: block;
+}
+
+body[data-role="family"] .controls {
+  position: static;
+  display: block;
+  margin-bottom: 14px;
+  padding: 14px;
+}
+
+body[data-role="family"] .person-control {
+  margin-bottom: 0;
+}
+
+body[data-role="family"] .panel-toolbar {
+  min-height: auto;
+  margin: 0 0 10px;
+}
+
+body[data-role="family"] .task-card.compact .task-body {
+  display: grid;
+}
+
+body[data-role="family"] .task-body {
+  grid-template-columns: 1fr;
+}
+
+body[data-role="family"] .task-meta .pill {
+  display: none;
+}
+
+body[data-role="family"] .file-row input {
+  min-height: 48px;
+}
+
+.family-upload-body {
+  gap: 8px;
+}
+
+.family-detail {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
 }
 
 body[data-mode="catalog"] .person-control,
@@ -821,6 +949,15 @@ dialog::backdrop {
 }
 
 @media (max-width: 720px) {
+  .entry-options {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-card {
+    min-height: 220px;
+    padding: 18px;
+  }
+
   main,
   .app-header {
     width: min(100% - 20px, 1440px);

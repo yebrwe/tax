@@ -412,6 +412,10 @@ const DEFAULT_TEMPLATES = [
 ];
 
 const elements = {
+  entryScreen: document.querySelector("#entryScreen"),
+  startAccountantButton: document.querySelector("#startAccountantButton"),
+  familyLinkInput: document.querySelector("#familyLinkInput"),
+  openFamilyLinkButton: document.querySelector("#openFamilyLinkButton"),
   doneMetric: document.querySelector("#doneMetric"),
   activeMetric: document.querySelector("#activeMetric"),
   todoMetric: document.querySelector("#todoMetric"),
@@ -529,7 +533,8 @@ function loadState() {
 
 function getInitialRole() {
   const role = new URLSearchParams(window.location.search).get("role");
-  return role === "family" ? "family" : "accountant";
+  if (role === "family" || role === "accountant") return role;
+  return null;
 }
 
 function getInitialCaseId() {
@@ -540,12 +545,7 @@ function getInitialCaseId() {
     return fromUrl;
   }
 
-  const stored = localStorage.getItem(CASE_STORAGE_KEY);
-  if (stored) return stored;
-
-  const created = makeCaseId();
-  localStorage.setItem(CASE_STORAGE_KEY, created);
-  return created;
+  return localStorage.getItem(CASE_STORAGE_KEY) || "";
 }
 
 function makeCaseId() {
@@ -749,6 +749,9 @@ function setupSelects() {
 }
 
 function render() {
+  document.body.dataset.screen = appRole ? "app" : "entry";
+  if (!appRole) return;
+
   document.body.dataset.role = appRole;
   document.body.dataset.mode = state.mode;
   elements.familyRoleButton.classList.toggle("is-active", appRole === "family");
@@ -821,9 +824,18 @@ function renderPeople() {
 
 function renderTasks() {
   const tasks = getVisibleTasks();
-  elements.taskCountTitle.textContent = state.mode === "catalog" ? `선택 가능 서류 ${tasks.length}건` : `요청서류 ${tasks.length}건`;
+  elements.taskCountTitle.textContent =
+    appRole === "family"
+      ? `업로드할 서류 ${tasks.length}건`
+      : state.mode === "catalog"
+        ? `선택 가능 서류 ${tasks.length}건`
+        : `요청서류 ${tasks.length}건`;
   elements.emptyState.textContent =
-    state.mode === "catalog" ? "조건에 맞는 서류가 없습니다." : "요청된 서류가 없습니다. 서류 선택에서 필요한 항목을 요청하세요.";
+    appRole === "family"
+      ? "업로드할 요청서류가 없습니다."
+      : state.mode === "catalog"
+        ? "조건에 맞는 서류가 없습니다."
+        : "요청된 서류가 없습니다. 서류 선택에서 필요한 항목을 요청하세요.";
   elements.emptyState.hidden = tasks.length > 0;
   elements.taskList.innerHTML = tasks.map(renderTaskCard).join("");
 }
@@ -920,6 +932,8 @@ function renderTaskCard(task) {
             <span>${requestLabel}</span>
           </label>
         `
+      : appRole === "family"
+        ? ""
       : `
           <select data-action="status" aria-label="${escapeHtml(task.title)} 상태">
             ${Object.entries(STATUS)
@@ -946,6 +960,37 @@ function renderTaskCard(task) {
         )
         .join("")
     : '<span class="muted">기록된 파일 없음</span>';
+  const taskBody =
+    appRole === "family"
+      ? `
+        <div class="task-body family-upload-body">
+          <div class="file-tools">
+            <div class="file-row">
+              <input type="file" multiple data-action="files" aria-label="${escapeHtml(task.title)} 파일 업로드" />
+            </div>
+            <div class="file-list">${fileChips}</div>
+          </div>
+          <p class="family-detail">${escapeHtml(detail)}</p>
+        </div>
+      `
+      : `
+        <div class="task-body">
+          <div class="detail-box">
+            <span>상세</span>
+            <p>${escapeHtml(detail)}</p>
+          </div>
+          <div class="file-tools">
+            <div class="detail-box">
+              <span>메모</span>
+              <p>${escapeHtml(note)}</p>
+            </div>
+            <div class="file-row">
+              <input type="file" multiple data-action="files" aria-label="${escapeHtml(task.title)} 파일명 기록" />
+            </div>
+            <div class="file-list">${fileChips}</div>
+          </div>
+        </div>
+      `;
 
   return `
     <article class="task-card ${statusClass} ${compactClass} ${requiredClass}" data-task-id="${escapeHtml(task.id)}" data-template-key="${escapeHtml(task.templateKey)}">
@@ -965,22 +1010,7 @@ function renderTaskCard(task) {
           ${actions}
         </div>
       </div>
-      <div class="task-body">
-        <div class="detail-box">
-          <span>상세</span>
-          <p>${escapeHtml(detail)}</p>
-        </div>
-        <div class="file-tools">
-          <div class="detail-box">
-            <span>메모</span>
-            <p>${escapeHtml(note)}</p>
-          </div>
-          <div class="file-row">
-            <input type="file" multiple data-action="files" aria-label="${escapeHtml(task.title)} 파일명 기록" />
-          </div>
-          <div class="file-list">${fileChips}</div>
-        </div>
-      </div>
+      ${taskBody}
     </article>
   `;
 }
@@ -1059,6 +1089,31 @@ function formatDate(value) {
 }
 
 function bindEvents() {
+  elements.startAccountantButton.addEventListener("click", async () => {
+    appRole = "accountant";
+    caseId = caseId || makeCaseId();
+    localStorage.setItem(CASE_STORAGE_KEY, caseId);
+    state.mode = "catalog";
+    updateRoleInUrl();
+    await loadRemoteCase();
+    render();
+  });
+
+  elements.openFamilyLinkButton.addEventListener("click", async () => {
+    const parsedCaseId = parseCaseId(elements.familyLinkInput.value.trim());
+    if (!parsedCaseId) {
+      showToast("세무사가 보낸 가족 링크나 작업방 코드를 입력하세요.");
+      return;
+    }
+    appRole = "family";
+    caseId = parsedCaseId;
+    localStorage.setItem(CASE_STORAGE_KEY, caseId);
+    state.mode = "requested";
+    updateRoleInUrl();
+    await loadRemoteCase();
+    render();
+  });
+
   elements.familyRoleButton.addEventListener("click", () => {
     appRole = "family";
     state.mode = "requested";
@@ -1207,13 +1262,28 @@ function findTask(id) {
 }
 
 function updateRoleInUrl() {
+  if (!appRole) return;
+  caseId = caseId || makeCaseId();
+  localStorage.setItem(CASE_STORAGE_KEY, caseId);
   const url = new URL(window.location.href);
   url.searchParams.set("role", appRole);
   url.searchParams.set("case", caseId);
   window.history.replaceState({}, "", url);
 }
 
+function parseCaseId(value) {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return url.searchParams.get("case") || "";
+  } catch {
+    return /^[a-zA-Z0-9_-]{8,80}$/.test(value) ? value : "";
+  }
+}
+
 async function copyFamilyLink() {
+  caseId = caseId || makeCaseId();
+  localStorage.setItem(CASE_STORAGE_KEY, caseId);
   await saveCaseState();
   const url = new URL(window.location.href);
   url.searchParams.set("case", caseId);
@@ -1452,9 +1522,11 @@ function escapeHtml(value) {
 async function initializeApp() {
   setupSelects();
   bindEvents();
-  updateRoleInUrl();
-  await loadRemoteCase();
-  if (appRole === "accountant") state.mode = "catalog";
+  if (appRole) {
+    updateRoleInUrl();
+    await loadRemoteCase();
+    if (appRole === "accountant") state.mode = "catalog";
+  }
   render();
 }
 
