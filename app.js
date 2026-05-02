@@ -834,6 +834,9 @@ function render() {
 
   if (appRole === "family") {
     state.mode = "requested";
+    state.filters.search = "";
+    state.filters.category = "all";
+    state.filters.status = "all";
     if (state.filters.person === "all" || !state.people.includes(state.filters.person)) {
       state.filters.person = state.people[0];
     }
@@ -1267,6 +1270,7 @@ function bindEvents() {
   elements.catalogModeButton.addEventListener("click", () => {
     state.mode = "catalog";
     render();
+    window.setTimeout(() => elements.searchInput.focus(), 0);
   });
 
   elements.personFilter.addEventListener("change", (event) => {

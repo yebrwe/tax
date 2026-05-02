@@ -1224,7 +1224,7 @@ body[data-role="accountant"] .workspace {
 body[data-role="accountant"] .controls {
   position: static;
   display: grid;
-  grid-template-columns: minmax(160px, 0.7fr) minmax(190px, 0.8fr) minmax(300px, 1fr);
+  grid-template-columns: minmax(150px, 0.7fr) minmax(170px, 0.7fr) minmax(260px, 1fr) minmax(300px, 1.1fr);
   gap: 10px;
   border: 0;
   padding: 0;
@@ -1249,6 +1249,7 @@ body[data-role="accountant"] .controls textarea {
 body[data-role="accountant"] .mode-tabs,
 body[data-role="accountant"] .view-tabs,
 body[data-role="accountant"] .person-control,
+body[data-role="accountant"] .search-control,
 body[data-role="accountant"] .quick-actions,
 body[data-role="accountant"] .catalog-actions,
 body[data-role="accountant"] .filter-drawer {
@@ -1277,6 +1278,15 @@ body[data-role="accountant"] .view-tabs .tab {
 
 body[data-role="accountant"] .person-control {
   align-self: stretch;
+}
+
+body[data-role="accountant"] .search-control {
+  grid-column: auto;
+  align-self: stretch;
+}
+
+body[data-role="accountant"][data-mode="catalog"] .search-control {
+  grid-column: span 2;
 }
 
 body[data-role="accountant"] .quick-actions {
@@ -1322,10 +1332,6 @@ body[data-role="accountant"] .filter-drawer .case-settings {
 
 body[data-role="accountant"] .filter-drawer .case-settings summary {
   color: var(--text);
-}
-
-body[data-role="accountant"] .filter-drawer .search-control {
-  grid-column: span 2;
 }
 
 body[data-role="accountant"] .filter-drawer #resetButton {
