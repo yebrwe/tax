@@ -31,6 +31,11 @@
     </header>
 
     <main>
+      <section class="role-switch" aria-label="화면 선택">
+        <button class="role-button is-active" id="familyRoleButton" type="button">가족 준비</button>
+        <button class="role-button" id="accountantRoleButton" type="button">세무사 설정</button>
+      </section>
+
       <section class="overview" aria-label="전체 현황">
         <article class="metric">
           <span class="metric-label">완료</span>
@@ -59,12 +64,12 @@
             <button class="mode-tab" id="catalogModeButton" type="button">서류 선택</button>
           </div>
 
-          <div class="control-block">
+          <div class="control-block person-control">
             <label for="personFilter">대상자</label>
             <select id="personFilter"></select>
           </div>
 
-          <div class="control-block">
+          <div class="control-block status-control">
             <label for="statusFilter">상태</label>
             <select id="statusFilter">
               <option value="all">전체</option>
@@ -99,6 +104,10 @@
           <button class="wide-button" id="addTaskButton" type="button">
             <span aria-hidden="true">＋</span>
             항목 추가
+          </button>
+          <button class="wide-button share-action" id="copyFamilyLinkButton" type="button">
+            <span aria-hidden="true">⧉</span>
+            가족 링크 복사
           </button>
           <div class="catalog-actions" id="catalogActions" hidden>
             <button class="wide-button" id="requestVisibleButton" type="button">

@@ -106,6 +106,45 @@ h2 {
   gap: 8px;
 }
 
+.role-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #edf1f6;
+}
+
+.role-button {
+  min-height: 42px;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--muted);
+  background: transparent;
+  font-weight: 900;
+}
+
+.role-button.is-active {
+  color: var(--text);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.1);
+}
+
+body[data-role="family"] .mode-tabs,
+body[data-role="family"] .role-switch,
+body[data-role="family"] .share-action,
+body[data-role="family"] #addTaskButton,
+body[data-role="family"] #resetButton {
+  display: none;
+}
+
+body[data-mode="catalog"] .person-control,
+body[data-mode="catalog"] .status-control {
+  display: none;
+}
+
 .icon-button {
   width: 40px;
   height: 40px;
@@ -584,6 +623,12 @@ button:focus-visible {
   color: #243043;
   background: #edf1f6;
   font-size: 0.78rem;
+}
+
+.file-chip a {
+  color: var(--accent);
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .file-chip button {

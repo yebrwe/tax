@@ -1,4 +1,5 @@
 const STORAGE_KEY = "tax-document-tracker-v1";
+const CASE_STORAGE_KEY = "tax-document-tracker-case-id";
 
 const PEOPLE = ["이윤하", "오명숙", "이훈경", "이훈"];
 
@@ -416,6 +417,8 @@ const elements = {
   todoMetric: document.querySelector("#todoMetric"),
   progressMetric: document.querySelector("#progressMetric"),
   peopleStrip: document.querySelector("#peopleStrip"),
+  familyRoleButton: document.querySelector("#familyRoleButton"),
+  accountantRoleButton: document.querySelector("#accountantRoleButton"),
   requestedModeButton: document.querySelector("#requestedModeButton"),
   catalogModeButton: document.querySelector("#catalogModeButton"),
   personFilter: document.querySelector("#personFilter"),
@@ -427,6 +430,7 @@ const elements = {
   taskList: document.querySelector("#taskList"),
   emptyState: document.querySelector("#emptyState"),
   addTaskButton: document.querySelector("#addTaskButton"),
+  copyFamilyLinkButton: document.querySelector("#copyFamilyLinkButton"),
   catalogActions: document.querySelector("#catalogActions"),
   requestVisibleButton: document.querySelector("#requestVisibleButton"),
   unrequestVisibleButton: document.querySelector("#unrequestVisibleButton"),
@@ -454,8 +458,12 @@ const elements = {
   toast: document.querySelector("#toast"),
 };
 
+let appRole = getInitialRole();
+let caseId = getInitialCaseId();
 let state = loadState();
 let toastTimer;
+let saveTimer;
+let isLoadingRemote = false;
 
 function createDefaultState() {
   const tasks = [];
@@ -519,6 +527,33 @@ function loadState() {
   }
 }
 
+function getInitialRole() {
+  const role = new URLSearchParams(window.location.search).get("role");
+  return role === "family" ? "family" : "accountant";
+}
+
+function getInitialCaseId() {
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get("case");
+  if (fromUrl) {
+    localStorage.setItem(CASE_STORAGE_KEY, fromUrl);
+    return fromUrl;
+  }
+
+  const stored = localStorage.getItem(CASE_STORAGE_KEY);
+  if (stored) return stored;
+
+  const created = makeCaseId();
+  localStorage.setItem(CASE_STORAGE_KEY, created);
+  return created;
+}
+
+function makeCaseId() {
+  const bytes = new Uint8Array(12);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 function normalizeTask(task) {
   const template = templateByKey(task.templateKey);
   return {
@@ -534,7 +569,7 @@ function normalizeTask(task) {
     status: STATUS[task.status] ? task.status : "todo",
     due: task.due || "",
     note: task.note || "",
-    files: Array.isArray(task.files) ? unique(task.files.map(String)) : [],
+    files: Array.isArray(task.files) ? uniqueFiles(task.files.map(normalizeFile)) : [],
     createdAt: task.createdAt || new Date().toISOString(),
     updatedAt: task.updatedAt || new Date().toISOString(),
   };
@@ -607,6 +642,58 @@ function isDefaultRequired(person, templateKey) {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleRemoteSave();
+}
+
+function remoteEnabled() {
+  return Boolean(caseId) && window.location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+
+function scheduleRemoteSave() {
+  if (!remoteEnabled() || isLoadingRemote) return;
+  window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(saveCaseState, 500);
+}
+
+async function loadRemoteCase() {
+  if (!remoteEnabled()) return;
+  isLoadingRemote = true;
+  try {
+    const response = await fetch(`/api/case?id=${encodeURIComponent(caseId)}`);
+    if (response.status === 404) return;
+    if (!response.ok) throw new Error("Case load failed");
+    const remoteState = await response.json();
+    if (Array.isArray(remoteState.tasks) && Array.isArray(remoteState.people)) {
+      state = {
+        ...createDefaultState(),
+        ...remoteState,
+        filters: { ...createDefaultState().filters, ...(state.filters || {}) },
+        people: unique([...PEOPLE, ...remoteState.people]),
+        tasks: remoteState.tasks.map(normalizeTask),
+      };
+      state.tasks = mergeMissingTemplateTasks(state);
+    }
+  } catch {
+    showToast("공유 작업방을 불러오지 못했습니다. 로컬 상태로 표시합니다.");
+  } finally {
+    isLoadingRemote = false;
+  }
+}
+
+async function saveCaseState() {
+  if (!remoteEnabled()) return;
+  try {
+    await fetch(`/api/case?id=${encodeURIComponent(caseId)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...state,
+        savedAt: new Date().toISOString(),
+      }),
+    });
+  } catch {
+    showToast("공유 작업방 저장에 실패했습니다.");
+  }
 }
 
 function makeId() {
@@ -618,6 +705,28 @@ function makeId() {
 
 function unique(items) {
   return [...new Set(items.filter(Boolean))];
+}
+
+function normalizeFile(file) {
+  if (!file) return null;
+  if (typeof file === "string") return { name: file };
+  return {
+    name: file.name || file.pathname || "첨부파일",
+    url: file.url || "",
+    pathname: file.pathname || "",
+    uploadedAt: file.uploadedAt || "",
+  };
+}
+
+function uniqueFiles(files) {
+  const seen = new Set();
+  return files.filter((file) => {
+    if (!file?.name) return false;
+    const key = file.pathname || file.url || file.name;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function setupSelects() {
@@ -640,13 +749,20 @@ function setupSelects() {
 }
 
 function render() {
-  elements.personFilter.value = state.filters.person;
-  elements.statusFilter.value = state.filters.status;
+  document.body.dataset.role = appRole;
+  document.body.dataset.mode = state.mode;
+  elements.familyRoleButton.classList.toggle("is-active", appRole === "family");
+  elements.accountantRoleButton.classList.toggle("is-active", appRole === "accountant");
+  if (appRole === "family") state.mode = "requested";
+
+  elements.personFilter.value = state.mode === "catalog" ? "all" : state.filters.person;
+  elements.statusFilter.value = state.mode === "catalog" ? "all" : state.filters.status;
   elements.categoryFilter.value = state.filters.category;
   elements.searchInput.value = state.filters.search;
   elements.sortSelect.value = state.filters.sort;
   elements.requestedModeButton.classList.toggle("is-active", state.mode === "requested");
   elements.catalogModeButton.classList.toggle("is-active", state.mode === "catalog");
+  elements.personFilter.disabled = state.mode === "catalog";
   elements.statusFilter.disabled = state.mode === "catalog";
   elements.catalogActions.hidden = state.mode !== "catalog";
   elements.compactViewButton.classList.toggle("is-active", state.viewMode === "compact");
@@ -713,6 +829,8 @@ function renderTasks() {
 }
 
 function getVisibleTasks() {
+  if (state.mode === "catalog") return getVisibleCatalogItems();
+
   const search = state.filters.search.trim().toLocaleLowerCase("ko-KR");
   const filtered = state.tasks.filter((task) => {
     if (state.mode === "requested" && !task.required) return false;
@@ -736,14 +854,64 @@ function getVisibleTasks() {
   });
 }
 
+function getVisibleCatalogItems() {
+  const search = state.filters.search.trim().toLocaleLowerCase("ko-KR");
+  const items = DEFAULT_TEMPLATES.map((template, index) => {
+    const relatedTasks = state.tasks.filter((task) => task.templateKey === template.key);
+    const requestedCount = relatedTasks.filter((task) => task.required).length;
+    return {
+      id: `catalog-${template.key}`,
+      templateKey: template.key,
+      category: template.category,
+      order: index,
+      person: "전체",
+      title: template.title,
+      issuer: template.issuer,
+      detail: template.detail,
+      status: requestedCount ? "todo" : "na",
+      due: "",
+      note: `${state.people.length}명 중 ${requestedCount}명에게 요청됨`,
+      files: [],
+      required: requestedCount === state.people.length,
+      partiallyRequired: requestedCount > 0 && requestedCount < state.people.length,
+      requestedCount,
+      totalCount: state.people.length,
+      isCatalogItem: true,
+    };
+  });
+
+  const filtered = items.filter((item) => {
+    if (state.filters.category !== "all" && item.category !== state.filters.category) return false;
+    if (!search) return true;
+
+    return [categoryLabel(item.category), item.title, item.issuer, item.detail, item.note]
+      .join(" ")
+      .toLocaleLowerCase("ko-KR")
+      .includes(search);
+  });
+
+  return filtered.sort((a, b) => {
+    if (state.filters.sort === "title") return a.title.localeCompare(b.title, "ko-KR");
+    return byCategory(a, b) || byOrder(a, b) || a.title.localeCompare(b.title, "ko-KR");
+  });
+}
+
 function renderTaskCard(task) {
   const dueText = task.due ? formatDate(task.due) : "목표일 미정";
   const note = task.note.trim() || "메모 없음";
   const detail = task.detail.trim() || "상세 없음";
   const statusClass = `is-${task.status}`;
   const compactClass = state.viewMode === "compact" || state.mode === "catalog" ? "compact" : "";
-  const requiredClass = task.required ? "is-required" : "is-unrequested";
-  const requestLabel = task.required ? "요청됨" : "미요청";
+  const requiredClass = task.required || task.partiallyRequired ? "is-required" : "is-unrequested";
+  const requestLabel = getRequestLabel(task);
+  const editButton =
+    appRole === "accountant"
+      ? `
+          <button class="icon-button" type="button" data-action="edit" title="수정" aria-label="${escapeHtml(task.title)} 수정">
+            <span aria-hidden="true">✎</span>
+          </button>
+        `
+      : "";
   const actions =
     state.mode === "catalog"
       ? `
@@ -751,9 +919,6 @@ function renderTaskCard(task) {
             <input type="checkbox" data-action="required" ${task.required ? "checked" : ""} />
             <span>${requestLabel}</span>
           </label>
-          <button class="icon-button" type="button" data-action="edit" title="수정" aria-label="${escapeHtml(task.title)} 수정">
-            <span aria-hidden="true">✎</span>
-          </button>
         `
       : `
           <select data-action="status" aria-label="${escapeHtml(task.title)} 상태">
@@ -761,35 +926,39 @@ function renderTaskCard(task) {
               .map(([value, label]) => `<option value="${value}" ${task.status === value ? "selected" : ""}>${label}</option>`)
               .join("")}
           </select>
-          <button class="icon-button" type="button" data-action="edit" title="수정" aria-label="${escapeHtml(task.title)} 수정">
-            <span aria-hidden="true">✎</span>
-          </button>
+          ${editButton}
         `;
   const fileChips = task.files.length
     ? task.files
         .map(
-          (file) => `
+          (file) => {
+            const fileName = escapeHtml(file.name || String(file));
+            const fileContent = file.url
+              ? `<a href="${escapeHtml(file.url)}" target="_blank" rel="noopener" download>${fileName}</a>`
+              : `<span>${fileName}</span>`;
+            return `
             <span class="file-chip">
-              <span>${escapeHtml(file)}</span>
-              <button type="button" data-action="remove-file" data-file="${escapeHtml(file)}" title="파일명 삭제" aria-label="${escapeHtml(file)} 삭제">×</button>
+              ${fileContent}
+              <button type="button" data-action="remove-file" data-file="${escapeHtml(file.pathname || file.url || file.name)}" title="파일명 삭제" aria-label="${fileName} 삭제">×</button>
             </span>
-          `,
+          `;
+          },
         )
         .join("")
     : '<span class="muted">기록된 파일 없음</span>';
 
   return `
-    <article class="task-card ${statusClass} ${compactClass} ${requiredClass}" data-task-id="${escapeHtml(task.id)}">
+    <article class="task-card ${statusClass} ${compactClass} ${requiredClass}" data-task-id="${escapeHtml(task.id)}" data-template-key="${escapeHtml(task.templateKey)}">
       <div class="task-head">
         <div class="task-title">
           <h3>${escapeHtml(task.title)}</h3>
           <div class="task-meta">
             <span class="pill person">${escapeHtml(task.person)}</span>
             <span class="pill category">${escapeHtml(categoryLabel(task.category))}</span>
-            <span class="pill ${task.required ? "requested" : "unrequested"}">${requestLabel}</span>
-            <span class="pill ${task.status}">${STATUS[task.status]}</span>
+            <span class="pill ${task.required || task.partiallyRequired ? "requested" : "unrequested"}">${requestLabel}</span>
+            ${state.mode === "catalog" ? "" : `<span class="pill ${task.status}">${STATUS[task.status]}</span>`}
             <span>${escapeHtml(task.issuer || "발급처 미정")}</span>
-            <span>${escapeHtml(dueText)}</span>
+            ${state.mode === "catalog" ? "" : `<span>${escapeHtml(dueText)}</span>`}
           </div>
         </div>
         <div class="task-actions">
@@ -814,6 +983,41 @@ function renderTaskCard(task) {
       </div>
     </article>
   `;
+}
+
+function getRequestLabel(task) {
+  if (task.isCatalogItem) {
+    if (task.required) return `전체 요청됨`;
+    if (task.partiallyRequired) return `${task.requestedCount}/${task.totalCount} 요청됨`;
+    return "미요청";
+  }
+  return task.required ? "요청됨" : "미요청";
+}
+
+async function uploadSelectedFiles(task, selectedFiles) {
+  if (!selectedFiles.length) return [];
+  if (!remoteEnabled()) {
+    return selectedFiles.map((file) => ({ name: file.name, uploadedAt: new Date().toISOString() }));
+  }
+
+  const uploadedFiles = [];
+  for (const file of selectedFiles) {
+    const formData = new FormData();
+    formData.append("caseId", caseId);
+    formData.append("taskId", task.id);
+    formData.append("person", task.person);
+    formData.append("title", task.title);
+    formData.append("file", file);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    if (!response.ok) throw new Error("Upload failed");
+    const payload = await response.json();
+    uploadedFiles.push(payload.file);
+  }
+  return uploadedFiles;
 }
 
 function statusRank(status) {
@@ -855,6 +1059,20 @@ function formatDate(value) {
 }
 
 function bindEvents() {
+  elements.familyRoleButton.addEventListener("click", () => {
+    appRole = "family";
+    state.mode = "requested";
+    updateRoleInUrl();
+    render();
+  });
+
+  elements.accountantRoleButton.addEventListener("click", () => {
+    appRole = "accountant";
+    state.mode = "catalog";
+    updateRoleInUrl();
+    render();
+  });
+
   elements.requestedModeButton.addEventListener("click", () => {
     state.mode = "requested";
     render();
@@ -898,13 +1116,13 @@ function bindEvents() {
     render();
   });
 
-  elements.taskList.addEventListener("change", (event) => {
+  elements.taskList.addEventListener("change", async (event) => {
     const taskCard = event.target.closest("[data-task-id]");
     if (!taskCard) return;
     const task = findTask(taskCard.dataset.taskId);
-    if (!task) return;
 
     if (event.target.dataset.action === "status") {
+      if (!task) return;
       task.status = event.target.value;
       task.updatedAt = new Date().toISOString();
       render();
@@ -912,19 +1130,27 @@ function bindEvents() {
     }
 
     if (event.target.dataset.action === "required") {
-      task.required = event.target.checked;
-      task.updatedAt = new Date().toISOString();
+      setTemplateRequired(taskCard.dataset.templateKey, event.target.checked);
       render();
-      showToast(task.required ? "요청서류에 추가했습니다." : "요청서류에서 제외했습니다.");
+      showToast(event.target.checked ? "모든 대상자에게 요청했습니다." : "모든 대상자에서 요청을 해제했습니다.");
       return;
     }
 
     if (event.target.dataset.action === "files") {
-      const names = Array.from(event.target.files || []).map((file) => file.name);
-      task.files = unique([...task.files, ...names]);
-      task.updatedAt = new Date().toISOString();
-      render();
-      showToast("파일명을 기록했습니다.");
+      if (!task) return;
+      const selectedFiles = Array.from(event.target.files || []);
+      try {
+        const uploadedFiles = await uploadSelectedFiles(task, selectedFiles);
+        task.files = uniqueFiles([...task.files, ...uploadedFiles]);
+        if (uploadedFiles.length) task.status = "done";
+        task.updatedAt = new Date().toISOString();
+        render();
+        showToast(remoteEnabled() ? "파일을 업로드했습니다." : "파일명을 기록했습니다.");
+      } catch {
+        showToast("파일 업로드에 실패했습니다.");
+      } finally {
+        event.target.value = "";
+      }
     }
   });
 
@@ -941,13 +1167,14 @@ function bindEvents() {
 
     if (action === "remove-file") {
       const file = event.target.dataset.file;
-      task.files = task.files.filter((item) => item !== file);
+      task.files = task.files.filter((item) => (item.pathname || item.url || item.name) !== file);
       task.updatedAt = new Date().toISOString();
       render();
     }
   });
 
   elements.addTaskButton.addEventListener("click", () => openTaskDialog());
+  elements.copyFamilyLinkButton.addEventListener("click", copyFamilyLink);
   elements.requestVisibleButton.addEventListener("click", () => setVisibleRequired(true));
   elements.unrequestVisibleButton.addEventListener("click", () => setVisibleRequired(false));
   elements.resetButton.addEventListener("click", resetState);
@@ -979,6 +1206,46 @@ function findTask(id) {
   return state.tasks.find((task) => task.id === id);
 }
 
+function updateRoleInUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("role", appRole);
+  url.searchParams.set("case", caseId);
+  window.history.replaceState({}, "", url);
+}
+
+async function copyFamilyLink() {
+  await saveCaseState();
+  const url = new URL(window.location.href);
+  url.searchParams.set("case", caseId);
+  url.searchParams.set("role", "family");
+  await copyText(url.toString());
+  showToast("가족용 링크를 복사했습니다.");
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+}
+
+function setTemplateRequired(templateKey, required) {
+  const now = new Date().toISOString();
+  state.tasks.forEach((task) => {
+    if (task.templateKey !== templateKey) return;
+    task.required = required;
+    task.updatedAt = now;
+  });
+}
+
 function setVisibleRequired(required) {
   const tasks = getVisibleTasks();
   if (!tasks.length) {
@@ -986,12 +1253,14 @@ function setVisibleRequired(required) {
     return;
   }
   const now = new Date().toISOString();
-  tasks.forEach((task) => {
+  const templateKeys = new Set(tasks.map((task) => task.templateKey));
+  state.tasks.forEach((task) => {
+    if (!templateKeys.has(task.templateKey)) return;
     task.required = required;
     task.updatedAt = now;
   });
   render();
-  showToast(required ? `${tasks.length}건을 요청서류로 표시했습니다.` : `${tasks.length}건을 요청서류에서 제외했습니다.`);
+  showToast(required ? `${tasks.length}개 서류를 모든 대상자에게 요청했습니다.` : `${tasks.length}개 서류 요청을 모두 해제했습니다.`);
 }
 
 function openTaskDialog(task) {
@@ -1180,6 +1449,13 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
-setupSelects();
-bindEvents();
-render();
+async function initializeApp() {
+  setupSelects();
+  bindEvents();
+  updateRoleInUrl();
+  await loadRemoteCase();
+  if (appRole === "accountant") state.mode = "catalog";
+  render();
+}
+
+initializeApp();
