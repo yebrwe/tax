@@ -83,70 +83,22 @@
             <button class="mode-tab" id="catalogModeButton" type="button">서류 선택</button>
           </div>
 
-          <details class="case-settings" id="caseSettings">
-            <summary>신고 설정</summary>
-            <div class="case-settings-body">
-              <label class="wide">
-                제목
-                <input id="caseTitleInput" type="text" />
-              </label>
-              <label>
-                귀속연도
-                <input id="taxYearInput" type="number" inputmode="numeric" min="2000" max="2100" />
-              </label>
-              <label>
-                신고연도
-                <input id="filingYearInput" type="number" inputmode="numeric" min="2000" max="2100" />
-              </label>
-              <label>
-                신고월
-                <input id="filingMonthInput" type="number" inputmode="numeric" min="1" max="12" />
-              </label>
-            </div>
-          </details>
-
           <div class="control-block person-control">
             <label for="personFilter">대상자</label>
             <select id="personFilter"></select>
           </div>
 
-          <div class="control-block status-control">
-            <label for="statusFilter">상태</label>
-            <select id="statusFilter">
-              <option value="all">전체</option>
-              <option value="todo">미완료</option>
-              <option value="done">완료</option>
-            </select>
+          <div class="quick-actions">
+            <button class="wide-button share-action" id="copyFamilyLinkButton" type="button">
+              <span aria-hidden="true">⧉</span>
+              업로드 링크 복사
+            </button>
+            <button class="wide-button" id="addTaskButton" type="button">
+              <span aria-hidden="true">＋</span>
+              직접 추가
+            </button>
           </div>
 
-          <div class="control-block category-control">
-            <label for="categoryFilter">카테고리</label>
-            <select id="categoryFilter"></select>
-          </div>
-
-          <div class="control-block search-control">
-            <label for="searchInput">검색</label>
-            <input id="searchInput" type="search" placeholder="서류명, 카테고리, 기관, 메모" />
-          </div>
-
-          <div class="control-block sort-control">
-            <label for="sortSelect">정렬</label>
-            <select id="sortSelect">
-              <option value="person">대상자순</option>
-              <option value="category">카테고리순</option>
-              <option value="status">상태순</option>
-              <option value="title">서류명순</option>
-            </select>
-          </div>
-
-          <button class="wide-button" id="addTaskButton" type="button">
-            <span aria-hidden="true">＋</span>
-            직접 추가
-          </button>
-          <button class="wide-button share-action" id="copyFamilyLinkButton" type="button">
-            <span aria-hidden="true">⧉</span>
-            업로드 링크 복사
-          </button>
           <div class="catalog-actions" id="catalogActions" hidden>
             <button class="wide-button" id="requestVisibleButton" type="button">
               <span aria-hidden="true">✓</span>
@@ -157,10 +109,67 @@
               현재 목록 해제
             </button>
           </div>
-          <button class="wide-button danger" id="resetButton" type="button">
-            <span aria-hidden="true">↺</span>
-            기본 목록으로 복원
-          </button>
+
+          <details class="filter-drawer">
+            <summary>필터 / 신고 설정</summary>
+            <div class="filter-drawer-body">
+              <details class="case-settings" id="caseSettings">
+                <summary>신고 설정</summary>
+                <div class="case-settings-body">
+                  <label class="wide">
+                    제목
+                    <input id="caseTitleInput" type="text" />
+                  </label>
+                  <label>
+                    귀속연도
+                    <input id="taxYearInput" type="number" inputmode="numeric" min="2000" max="2100" />
+                  </label>
+                  <label>
+                    신고연도
+                    <input id="filingYearInput" type="number" inputmode="numeric" min="2000" max="2100" />
+                  </label>
+                  <label>
+                    신고월
+                    <input id="filingMonthInput" type="number" inputmode="numeric" min="1" max="12" />
+                  </label>
+                </div>
+              </details>
+
+              <div class="control-block status-control">
+                <label for="statusFilter">상태</label>
+                <select id="statusFilter">
+                  <option value="all">전체</option>
+                  <option value="todo">미완료</option>
+                  <option value="done">완료</option>
+                </select>
+              </div>
+
+              <div class="control-block category-control">
+                <label for="categoryFilter">카테고리</label>
+                <select id="categoryFilter"></select>
+              </div>
+
+              <div class="control-block search-control">
+                <label for="searchInput">검색</label>
+                <input id="searchInput" type="search" placeholder="서류명, 카테고리, 기관, 메모" />
+              </div>
+
+              <div class="control-block sort-control">
+                <label for="sortSelect">정렬</label>
+                <select id="sortSelect">
+                  <option value="person">대상자순</option>
+                  <option value="category">카테고리순</option>
+                  <option value="status">상태순</option>
+                  <option value="title">서류명순</option>
+                </select>
+              </div>
+
+              <button class="wide-button danger" id="resetButton" type="button">
+                <span aria-hidden="true">↺</span>
+                기본 목록으로 복원
+              </button>
+            </div>
+          </details>
         </aside>
 
         <section class="task-panel" aria-label="서류 항목">
