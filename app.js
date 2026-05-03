@@ -1170,6 +1170,12 @@ function renderTaskCard(task) {
             <span>요청 상태</span>
             <p>${escapeHtml(note)}</p>
           </div>
+          <div class="catalog-person-section">
+            <span>요청 대상자</span>
+            <div class="catalog-person-grid">
+              ${renderCatalogPersonToggles(task)}
+            </div>
+          </div>
         </div>
       `;
   } else {
@@ -1213,6 +1219,21 @@ function renderTaskCard(task) {
       ${taskBody}
     </article>
   `;
+}
+
+function renderCatalogPersonToggles(item) {
+  return state.people
+    .map((person) => {
+      const relatedTask = state.tasks.find((task) => task.templateKey === item.templateKey && task.person === person);
+      const checked = relatedTask?.required ? "checked" : "";
+      return `
+        <label class="person-request-toggle">
+          <input type="checkbox" data-action="person-required" data-person="${escapeHtml(person)}" ${checked} />
+          <span>${escapeHtml(person)}</span>
+        </label>
+      `;
+    })
+    .join("");
 }
 
 function renderTaskGroupCard(group) {
@@ -1279,7 +1300,7 @@ function renderFileChip(file, allowRemove) {
 
 function getRequestLabel(task) {
   if (task.isCatalogItem) {
-    if (task.required) return `전체 요청됨`;
+    if (task.required) return `${task.totalCount}명 요청됨`;
     if (task.partiallyRequired) return `${task.requestedCount}/${task.totalCount} 요청됨`;
     return "미요청";
   }
@@ -1436,6 +1457,13 @@ function bindEvents() {
       setTemplateRequired(taskCard.dataset.templateKey, event.target.checked);
       render();
       showToast(event.target.checked ? "모든 대상자에게 요청했습니다." : "모든 대상자에서 요청을 해제했습니다.");
+      return;
+    }
+
+    if (event.target.dataset.action === "person-required") {
+      setTemplatePersonRequired(taskCard.dataset.templateKey, event.target.dataset.person, event.target.checked);
+      render();
+      showToast(event.target.checked ? `${event.target.dataset.person}님에게 요청했습니다.` : `${event.target.dataset.person}님 요청을 해제했습니다.`);
       return;
     }
 
@@ -1601,6 +1629,14 @@ function setTemplateRequired(templateKey, required) {
     task.required = required;
     task.updatedAt = now;
   });
+}
+
+function setTemplatePersonRequired(templateKey, person, required) {
+  const now = new Date().toISOString();
+  const task = state.tasks.find((item) => item.templateKey === templateKey && item.person === person);
+  if (!task) return;
+  task.required = required;
+  task.updatedAt = now;
 }
 
 function setVisibleRequired(required) {

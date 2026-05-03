@@ -804,6 +804,55 @@ button:focus-visible {
   accent-color: var(--accent);
 }
 
+.catalog-detail-body {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.54fr);
+}
+
+.catalog-person-section {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+}
+
+.catalog-person-section > span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.catalog-person-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.person-request-toggle {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 10px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 0.86rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.person-request-toggle:has(input:checked) {
+  border-color: #acd9d3;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.person-request-toggle input {
+  width: 16px;
+  min-height: 16px;
+  accent-color: var(--accent);
+}
+
 .catalog-actions {
   display: grid;
   grid-template-columns: 1fr;
@@ -1780,8 +1829,13 @@ body[data-role="accountant"] .task-list.is-grouped .task-card {
   }
 
   .task-body,
+  .catalog-detail-body,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .catalog-person-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .group-person-row {
