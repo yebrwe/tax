@@ -356,7 +356,7 @@ dialog {
 .people-strip {
   margin: 0 0 14px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 10px;
 }
 
@@ -1346,14 +1346,15 @@ body[data-role="accountant"] .metric.highlight {
 }
 
 body[data-role="accountant"] .people-strip {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
+  overflow: visible;
+  padding-bottom: 0;
 }
 
 body[data-role="accountant"] .person-card {
-  flex: 1 0 190px;
+  min-width: 0;
   min-height: 84px;
   border: 0;
   border-bottom: 3px solid transparent;
@@ -1925,17 +1926,17 @@ body[data-role="accountant"] .task-list.is-grouped .task-card {
   }
 
   .people-strip {
-    display: flex;
-    grid-template-columns: none;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scroll-snap-type: x proximity;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    overflow: visible;
+    padding-bottom: 0;
+    scroll-snap-type: none;
   }
 
   .person-card {
-    flex: 0 0 178px;
+    min-width: 0;
     min-height: 104px;
-    scroll-snap-align: start;
+    scroll-snap-align: none;
   }
 
   .controls {
