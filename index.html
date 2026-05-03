@@ -106,6 +106,10 @@
           </div>
 
           <div class="quick-actions">
+            <button class="wide-button neutral" id="openTargetManagerButton" type="button">
+              <span aria-hidden="true">＋</span>
+              대상자 추가
+            </button>
             <button class="wide-button share-action" id="copyFamilyLinkButton" type="button">
               <span aria-hidden="true">⧉</span>
               업로드 링크 복사
@@ -149,6 +153,30 @@
                     신고월
                     <input id="filingMonthInput" type="number" inputmode="numeric" min="1" max="12" />
                   </label>
+                  <div class="case-actions wide">
+                    <button class="wide-button neutral" id="newCaseButton" type="button">
+                      <span aria-hidden="true">＋</span>
+                      새 신고건 시작
+                    </button>
+                  </div>
+                  <section class="target-manager wide" aria-label="대상자 관리">
+                    <div class="target-manager-head">
+                      <strong>대상자 관리</strong>
+                      <span id="targetCountText">0곳</span>
+                    </div>
+                    <div class="target-add-row">
+                      <label class="sr-only" for="targetNameInput">대상자명</label>
+                      <input id="targetNameInput" type="text" placeholder="이름 또는 법인명" />
+                      <label class="sr-only" for="targetTypeSelect">대상 구분</label>
+                      <select id="targetTypeSelect" aria-label="대상 구분">
+                        <option value="individual">개인</option>
+                        <option value="corporate">법인</option>
+                        <option value="other">기타</option>
+                      </select>
+                      <button class="wide-button" id="addTargetButton" type="button">추가</button>
+                    </div>
+                    <div class="target-list" id="targetList"></div>
+                  </section>
                 </div>
               </details>
 

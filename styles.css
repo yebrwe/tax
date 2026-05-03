@@ -474,6 +474,99 @@ dialog {
   grid-column: 1 / -1;
 }
 
+.case-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.case-actions .wide-button {
+  width: auto;
+  min-width: 180px;
+}
+
+.target-manager {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--surface);
+}
+
+.target-manager-head,
+.target-chip {
+  display: flex;
+  align-items: center;
+}
+
+.target-manager-head {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.target-manager-head strong {
+  font-size: 0.95rem;
+}
+
+.target-manager-head span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.target-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 82px;
+  gap: 8px;
+}
+
+.target-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.target-chip {
+  min-height: 38px;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 7px 5px 12px;
+  background: var(--surface-soft);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.target-chip small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.target-chip button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 900;
+}
+
+.target-chip button:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.target-empty {
+  width: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
 label,
 .control-block label {
   color: var(--muted);
@@ -1492,7 +1585,7 @@ body[data-role="accountant"][data-mode="catalog"] .search-control {
 
 body[data-role="accountant"] .quick-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1869,6 +1962,14 @@ body[data-role="accountant"] .task-list.is-grouped .task-card {
 
   .case-settings-body .wide {
     grid-column: auto;
+  }
+
+  .case-actions .wide-button {
+    width: 100%;
+  }
+
+  .target-add-row {
+    grid-template-columns: 1fr;
   }
 
   .wide-button,

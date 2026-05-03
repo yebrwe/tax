@@ -2,10 +2,6 @@ const STORAGE_KEY = "tax-document-tracker-v1";
 const CASE_STORAGE_KEY = "tax-document-tracker-case-id";
 const DEFAULT_CASE_TITLE = "종합소득세 서류 관리";
 
-const INDIVIDUAL_PEOPLE = ["이윤하", "오명숙", "이훈경", "이훈"];
-const CORPORATE_ENTITIES = ["주식회사 이오", "삼오개발"];
-const PEOPLE = [...INDIVIDUAL_PEOPLE, ...CORPORATE_ENTITIES];
-
 const STATUS = {
   todo: "미완료",
   progress: "진행중",
@@ -13,6 +9,12 @@ const STATUS = {
   na: "해당없음",
 };
 const SORT_VALUES = ["popular", "person", "category", "status", "title"];
+const TARGET_TYPES = [
+  { key: "individual", label: "개인" },
+  { key: "corporate", label: "법인" },
+  { key: "other", label: "기타" },
+];
+const TARGET_TYPE_LABELS = Object.fromEntries(TARGET_TYPES.map((type) => [type.key, type.label]));
 
 const CATEGORIES = [
   { key: "core", label: "기본/신고" },
@@ -23,16 +25,6 @@ const CATEGORIES = [
   { key: "family", label: "가족/인적공제" },
   { key: "tax-request", label: "세무사 추가요청" },
 ];
-
-const DEFAULT_REQUIRED = {
-  "local-tax": "all",
-  "real-estate-tax": "all",
-  "loan-payment": "all",
-  "insurance-payment": "all",
-  donation: "all",
-  "personal-change": INDIVIDUAL_PEOPLE,
-  medical: ["오명숙", "이윤하"],
-};
 
 const DETAIL_REPLACEMENTS = {
   "변경사항이 있으면 주민등록등본, 가족관계증명서 등 관련 증빙 준비. 없으면 해당없음으로 표시.":
@@ -494,6 +486,12 @@ const elements = {
   taxYearInput: document.querySelector("#taxYearInput"),
   filingYearInput: document.querySelector("#filingYearInput"),
   filingMonthInput: document.querySelector("#filingMonthInput"),
+  newCaseButton: document.querySelector("#newCaseButton"),
+  targetNameInput: document.querySelector("#targetNameInput"),
+  targetTypeSelect: document.querySelector("#targetTypeSelect"),
+  addTargetButton: document.querySelector("#addTargetButton"),
+  targetCountText: document.querySelector("#targetCountText"),
+  targetList: document.querySelector("#targetList"),
   doneMetric: document.querySelector("#doneMetric"),
   activeMetric: document.querySelector("#activeMetric"),
   todoMetric: document.querySelector("#todoMetric"),
@@ -510,6 +508,7 @@ const elements = {
   taskList: document.querySelector("#taskList"),
   emptyState: document.querySelector("#emptyState"),
   addTaskButton: document.querySelector("#addTaskButton"),
+  openTargetManagerButton: document.querySelector("#openTargetManagerButton"),
   copyFamilyLinkButton: document.querySelector("#copyFamilyLinkButton"),
   catalogActions: document.querySelector("#catalogActions"),
   requestVisibleButton: document.querySelector("#requestVisibleButton"),
@@ -572,35 +571,76 @@ function normalizeYear(value) {
   return String(year);
 }
 
-function createDefaultState() {
-  const tasks = [];
-  PEOPLE.forEach((person) => {
-    DEFAULT_TEMPLATES.forEach((template, index) => {
-      if (template.people && !template.people.includes(person)) return;
-      tasks.push({
-        id: makeId(),
-        templateKey: template.key,
-        category: template.category,
-        order: index,
-        person,
-        title: template.title,
-        issuer: template.issuer,
-        detail: template.detail,
-        required: isDefaultRequired(person, template.key),
-        status: "todo",
-        due: "",
-        note: "",
-        files: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    });
-  });
+function normalizeTargetName(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
 
+function normalizeTargetType(type) {
+  return TARGET_TYPE_LABELS[type] ? type : "individual";
+}
+
+function inferTargetType(name) {
+  return /(주식회사|\(주\)|㈜|법인|회사|개발|건설|상사|컴퍼니|co\.|corp\.|inc\.)/i.test(name) ? "corporate" : "individual";
+}
+
+function normalizeTargets(targets = [], people = []) {
+  const byName = new Map();
+
+  const addTarget = (name, type) => {
+    const normalizedName = normalizeTargetName(name);
+    if (!normalizedName) return;
+    if (byName.has(normalizedName) && !type) return;
+    byName.set(normalizedName, {
+      name: normalizedName,
+      type: normalizeTargetType(type || inferTargetType(normalizedName)),
+    });
+  };
+
+  if (Array.isArray(targets)) {
+    targets.forEach((target) => {
+      if (typeof target === "string") {
+        addTarget(target);
+        return;
+      }
+      addTarget(target?.name, target?.type);
+    });
+  }
+
+  if (Array.isArray(people)) {
+    people.forEach((person) => addTarget(person));
+  }
+
+  return [...byName.values()];
+}
+
+function createTemplateTask(person, template, index, required = false) {
+  const now = new Date().toISOString();
   return {
-    settings: getDefaultCaseSettings(),
-    people: PEOPLE,
-    tasks,
+    id: makeId(),
+    templateKey: template.key,
+    category: template.category,
+    order: index,
+    person,
+    title: template.title,
+    issuer: template.issuer,
+    detail: template.detail,
+    required,
+    status: "todo",
+    due: "",
+    note: "",
+    files: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function createDefaultState(options = {}) {
+  const targets = normalizeTargets(options.targets, options.people);
+  const state = {
+    settings: normalizeCaseSettings(options.settings),
+    targets,
+    people: targets.map((target) => target.name),
+    tasks: [],
     filters: {
       person: "all",
       status: "all",
@@ -611,6 +651,9 @@ function createDefaultState() {
     mode: "requested",
     viewMode: "compact",
   };
+
+  state.tasks = mergeMissingTemplateTasks(state);
+  return state;
 }
 
 function loadState() {
@@ -619,21 +662,36 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed.tasks) || !Array.isArray(parsed.people)) return fallback;
-    const migrated = {
-      ...fallback,
-      ...parsed,
-      settings: normalizeCaseSettings(parsed.settings),
-      filters: { ...fallback.filters, ...(parsed.filters || {}) },
-      people: unique([...PEOPLE, ...parsed.people]),
-      tasks: parsed.tasks.map(normalizeTask),
-    };
-    migrated.mode = migrated.mode === "catalog" ? "catalog" : "requested";
-    migrated.tasks = mergeMissingTemplateTasks(migrated);
-    return migrated;
+    return normalizeState(parsed, fallback);
   } catch {
     return fallback;
   }
+}
+
+function normalizeState(rawState, fallback = createDefaultState()) {
+  if (!rawState || typeof rawState !== "object") return fallback;
+
+  const rawTasks = Array.isArray(rawState.tasks) ? rawState.tasks : [];
+  const peopleFromTasks = rawTasks.map((task) => task?.person).filter(Boolean);
+  const targets = normalizeTargets(rawState.targets, [...(Array.isArray(rawState.people) ? rawState.people : []), ...peopleFromTasks]);
+  const people = targets.map((target) => target.name);
+  const tasks = rawTasks.map(normalizeTask).filter((task) => task.person && people.includes(task.person));
+  const migrated = {
+    ...fallback,
+    ...rawState,
+    settings: normalizeCaseSettings(rawState.settings),
+    filters: { ...fallback.filters, ...(rawState.filters || {}) },
+    targets,
+    people,
+    tasks,
+  };
+
+  migrated.mode = migrated.mode === "catalog" ? "catalog" : "requested";
+  migrated.viewMode = migrated.viewMode === "detail" ? "detail" : "compact";
+  if (!SORT_VALUES.includes(migrated.filters.sort)) migrated.filters.sort = fallback.filters.sort;
+  if (migrated.filters.person !== "all" && !people.includes(migrated.filters.person)) migrated.filters.person = "all";
+  migrated.tasks = mergeMissingTemplateTasks(migrated);
+  return migrated;
 }
 
 function getInitialRole() {
@@ -666,7 +724,7 @@ function normalizeTask(task) {
     templateKey: task.templateKey || "custom",
     order: template ? templateOrder(task.templateKey) : Number.isFinite(task.order) ? task.order : 999,
     category: categoryExists(task.category) ? task.category : template?.category || "core",
-    person: task.person || PEOPLE[0],
+    person: normalizeTargetName(task.person),
     title: task.title || "새 서류",
     issuer: task.issuer || "",
     detail: normalizeDetail(task.detail || ""),
@@ -685,7 +743,7 @@ function inferRequired(task, template) {
   if (!template || task.templateKey === "custom") return true;
   if (task.status && task.status !== "todo") return true;
   if (task.due || task.note || (Array.isArray(task.files) && task.files.length > 0)) return true;
-  return isDefaultRequired(task.person || PEOPLE[0], task.templateKey);
+  return false;
 }
 
 function normalizeDetail(detail) {
@@ -693,32 +751,14 @@ function normalizeDetail(detail) {
 }
 
 function mergeMissingTemplateTasks(baseState) {
-  const now = new Date().toISOString();
   const existingKeys = new Set(baseState.tasks.map((task) => `${task.person}::${task.templateKey}`));
   const additions = [];
 
   baseState.people.forEach((person) => {
     DEFAULT_TEMPLATES.forEach((template, index) => {
-      if (template.people && !template.people.includes(person)) return;
       const key = `${person}::${template.key}`;
       if (existingKeys.has(key)) return;
-      additions.push({
-        id: makeId(),
-        templateKey: template.key,
-        category: template.category,
-        order: index,
-        person,
-        title: template.title,
-        issuer: template.issuer,
-        detail: template.detail,
-        required: isDefaultRequired(person, template.key),
-        status: "todo",
-        due: "",
-        note: "",
-        files: [],
-        createdAt: now,
-        updatedAt: now,
-      });
+      additions.push(createTemplateTask(person, template, index, false));
     });
   });
 
@@ -740,13 +780,6 @@ function categoryExists(key) {
 
 function categoryLabel(key) {
   return CATEGORIES.find((category) => category.key === key)?.label || "기본/신고";
-}
-
-function isDefaultRequired(person, templateKey) {
-  const rule = DEFAULT_REQUIRED[templateKey];
-  if (rule === "all") return true;
-  if (Array.isArray(rule)) return rule.includes(person);
-  return false;
 }
 
 function saveState() {
@@ -772,18 +805,13 @@ async function loadRemoteCase() {
     if (response.status === 404) return;
     if (!response.ok) throw new Error("Case load failed");
     const remoteState = await response.json();
-    if (Array.isArray(remoteState.tasks) && Array.isArray(remoteState.people)) {
-      const fallback = createDefaultState();
-      state = {
-        ...fallback,
-        ...remoteState,
-        settings: normalizeCaseSettings(remoteState.settings),
-        filters: { ...fallback.filters, ...(state.filters || {}) },
-        people: unique([...PEOPLE, ...remoteState.people]),
-        tasks: remoteState.tasks.map(normalizeTask),
-      };
-      state.tasks = mergeMissingTemplateTasks(state);
+    const fallback = createDefaultState({ settings: state.settings, targets: state.targets });
+    const loadedState = normalizeState(remoteState, fallback);
+    loadedState.filters = { ...loadedState.filters, ...(state.filters || {}) };
+    if (loadedState.filters.person !== "all" && !loadedState.people.includes(loadedState.filters.person)) {
+      loadedState.filters.person = "all";
     }
+    state = loadedState;
   } catch {
     showToast("공유 작업방을 불러오지 못했습니다. 로컬 상태로 표시합니다.");
   } finally {
@@ -878,6 +906,23 @@ function renderCaseHeader() {
   elements.filingMonthInput.value = state.settings.filingMonth;
 }
 
+function renderTargetManager() {
+  elements.targetCountText.textContent = `${state.people.length}곳`;
+  elements.targetList.innerHTML = state.targets.length
+    ? state.targets
+        .map(
+          (target) => `
+            <span class="target-chip">
+              <span>${escapeHtml(target.name)}</span>
+              <small>${escapeHtml(TARGET_TYPE_LABELS[target.type] || "대상")}</small>
+              <button type="button" data-target-remove="${escapeHtml(target.name)}" title="${escapeHtml(target.name)} 삭제" aria-label="${escapeHtml(target.name)} 삭제">×</button>
+            </span>
+          `,
+        )
+        .join("")
+    : '<p class="target-empty">대상자를 추가하면 서류 선택과 업로드 링크 공유를 시작할 수 있습니다.</p>';
+}
+
 function formatCaseLabel(settings) {
   const parts = [];
   if (settings.taxYear) parts.push(`${settings.taxYear}년 귀속`);
@@ -887,6 +932,7 @@ function formatCaseLabel(settings) {
 
 function render() {
   renderCaseHeader();
+  renderTargetManager();
   document.body.dataset.screen = appRole ? "app" : "entry";
   delete document.documentElement.dataset.bootScreen;
   if (!appRole) {
@@ -900,7 +946,9 @@ function render() {
     state.filters.search = "";
     state.filters.category = "all";
     state.filters.status = "all";
-    if (state.filters.person === "all" || !state.people.includes(state.filters.person)) {
+    if (!state.people.length) {
+      state.filters.person = "";
+    } else if (state.filters.person === "all" || !state.people.includes(state.filters.person)) {
       state.filters.person = state.people[0];
     }
   }
@@ -942,6 +990,11 @@ function renderMetrics() {
 }
 
 function renderPeople() {
+  if (!state.people.length) {
+    elements.peopleStrip.innerHTML = '<p class="target-empty">대상자를 먼저 추가하세요.</p>';
+    return;
+  }
+
   elements.peopleStrip.innerHTML = state.people
     .map((person) => {
       const tasks = state.tasks.filter((task) => task.person === person && task.required);
@@ -949,6 +1002,7 @@ function renderPeople() {
       const todo = tasks.length - done;
       const percent = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
       const isSelected = state.filters.person === person;
+      const target = getTarget(person);
 
       return `
         <button class="person-card ${isSelected ? "is-selected" : ""}" type="button" data-person-card="${escapeHtml(person)}" aria-pressed="${isSelected}">
@@ -956,6 +1010,7 @@ function renderPeople() {
             <strong>${escapeHtml(person)}</strong>
             <span class="person-percent">${percent}%</span>
           </span>
+          <span class="pill person">${escapeHtml(TARGET_TYPE_LABELS[target?.type] || "대상")}</span>
           <span class="progress-bar" aria-hidden="true">
             <span class="progress-fill" style="width: ${percent}%"></span>
           </span>
@@ -995,6 +1050,13 @@ function renderTasks() {
 
 function renderFamilyProgress() {
   if (appRole !== "family") return;
+  if (!state.filters.person) {
+    elements.familyProgressPerson.textContent = "대상자 없음";
+    elements.familyProgressText.textContent = "0/0 처리";
+    elements.finishUploadButton.disabled = true;
+    elements.finishUploadButton.textContent = "요청 없음";
+    return;
+  }
   const tasks = state.tasks.filter((task) => task.person === state.filters.person && task.required);
   const resolved = tasks.filter(isResolvedTask).length;
   const remaining = tasks.length - resolved;
@@ -1083,9 +1145,9 @@ function getVisibleCatalogItems() {
       detail: template.detail,
       status: requestedCount ? "todo" : "na",
       due: "",
-      note: `${state.people.length}명 중 ${requestedCount}명에게 요청됨`,
+      note: state.people.length ? `${state.people.length}곳 중 ${requestedCount}곳에 요청됨` : "대상자를 먼저 추가하세요",
       files: [],
-      required: requestedCount === state.people.length,
+      required: state.people.length > 0 && requestedCount === state.people.length,
       partiallyRequired: requestedCount > 0 && requestedCount < state.people.length,
       requestedCount,
       totalCount: state.people.length,
@@ -1225,6 +1287,10 @@ function renderTaskCard(task) {
 }
 
 function renderCatalogPersonToggles(item) {
+  if (!state.people.length) {
+    return '<p class="target-empty">대상자를 추가한 뒤 개별 요청을 선택할 수 있습니다.</p>';
+  }
+
   return state.people
     .map((person) => {
       const relatedTask = state.tasks.find((task) => task.templateKey === item.templateKey && task.person === person);
@@ -1303,7 +1369,8 @@ function renderFileChip(file, allowRemove) {
 
 function getRequestLabel(task) {
   if (task.isCatalogItem) {
-    if (task.required) return `${task.totalCount}명 요청됨`;
+    if (!task.totalCount) return "대상자 없음";
+    if (task.required) return `${task.totalCount}곳 요청됨`;
     if (task.partiallyRequired) return `${task.requestedCount}/${task.totalCount} 요청됨`;
     return "미요청";
   }
@@ -1344,12 +1411,18 @@ function isResolvedTask(task) {
   return task.status === "done" || task.status === "na";
 }
 
+function getTarget(person) {
+  return state.targets.find((target) => target.name === person);
+}
+
 function targetLabel(person) {
-  return CORPORATE_ENTITIES.includes(person) ? person : `${person}님`;
+  return person || "대상자";
 }
 
 function byPerson(a, b) {
-  return state.people.indexOf(a.person) - state.people.indexOf(b.person);
+  const first = state.people.indexOf(a.person);
+  const second = state.people.indexOf(b.person);
+  return (first >= 0 ? first : 9999) - (second >= 0 ? second : 9999);
 }
 
 function byOrder(a, b) {
@@ -1385,6 +1458,7 @@ function bindEvents() {
     await loadRemoteCase();
     state.mode = "requested";
     state.filters.person = "all";
+    setupSelects();
     render();
   };
 
@@ -1409,7 +1483,10 @@ function bindEvents() {
     state.mode = "requested";
     updateRoleInUrl();
     await loadRemoteCase();
-    if (state.filters.person === "all" || !state.people.includes(state.filters.person)) {
+    setupSelects();
+    if (!state.people.length) {
+      state.filters.person = "";
+    } else if (state.filters.person === "all" || !state.people.includes(state.filters.person)) {
       state.filters.person = state.people[0];
     }
     render();
@@ -1463,6 +1540,19 @@ function bindEvents() {
     input.addEventListener("change", updateCaseSettingsFromForm);
   });
 
+  elements.newCaseButton.addEventListener("click", createNewCase);
+  elements.addTargetButton.addEventListener("click", addTargetFromForm);
+  elements.targetNameInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    addTargetFromForm();
+  });
+  elements.targetList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-target-remove]");
+    if (!button) return;
+    removeTarget(button.dataset.targetRemove);
+  });
+
   elements.peopleStrip.addEventListener("click", (event) => {
     const card = event.target.closest("[data-person-card]");
     if (!card) return;
@@ -1477,6 +1567,12 @@ function bindEvents() {
     const task = findTask(taskCard.dataset.taskId);
 
     if (event.target.dataset.action === "required") {
+      if (!state.people.length) {
+        event.target.checked = false;
+        showToast("대상자를 먼저 추가하세요.");
+        render();
+        return;
+      }
       setTemplateRequired(taskCard.dataset.templateKey, event.target.checked);
       render();
       showToast(event.target.checked ? "모든 대상자에게 요청했습니다." : "모든 대상자에서 요청을 해제했습니다.");
@@ -1544,6 +1640,7 @@ function bindEvents() {
   });
 
   elements.addTaskButton.addEventListener("click", () => openTaskDialog());
+  elements.openTargetManagerButton.addEventListener("click", openTargetManager);
   elements.copyFamilyLinkButton.addEventListener("click", copyFamilyLink);
   elements.finishUploadButton.addEventListener("click", finishFamilyUpload);
   elements.requestVisibleButton.addEventListener("click", () => setVisibleRequired(true));
@@ -1606,7 +1703,86 @@ function updateCaseSettingsFromForm() {
   render();
 }
 
+function openTargetManager() {
+  const filterDrawer = document.querySelector(".filter-drawer");
+  if (filterDrawer) filterDrawer.open = true;
+  elements.caseSettings.open = true;
+  window.setTimeout(() => elements.targetNameInput.focus(), 0);
+}
+
+async function createNewCase() {
+  const confirmed = window.confirm("새 신고건을 시작할까요? 현재 신고건은 기존 링크로 다시 열 수 있습니다.");
+  if (!confirmed) return;
+  await saveCaseState();
+
+  const settings = normalizeCaseSettings({
+    title: elements.caseTitleInput.value || DEFAULT_CASE_TITLE,
+    taxYear: elements.taxYearInput.value,
+    filingYear: elements.filingYearInput.value,
+    filingMonth: elements.filingMonthInput.value,
+  });
+
+  caseId = makeCaseId();
+  localStorage.setItem(CASE_STORAGE_KEY, caseId);
+  state = createDefaultState({ settings });
+  state.mode = "requested";
+  state.filters.person = "all";
+  setupSelects();
+  updateRoleInUrl();
+  render();
+  showToast("새 신고건을 시작했습니다. 대상자를 추가하세요.");
+}
+
+function addTargetFromForm() {
+  const name = normalizeTargetName(elements.targetNameInput.value);
+  const type = normalizeTargetType(elements.targetTypeSelect.value);
+  if (!name) {
+    showToast("대상자명 또는 법인명을 입력하세요.");
+    elements.targetNameInput.focus();
+    return;
+  }
+
+  if (state.people.includes(name)) {
+    showToast("이미 추가된 대상자입니다.");
+    elements.targetNameInput.select();
+    return;
+  }
+
+  state.targets.push({ name, type });
+  state.people = state.targets.map((target) => target.name);
+  state.tasks = mergeMissingTemplateTasks(state);
+  state.filters.person = name;
+  elements.targetNameInput.value = "";
+  setupSelects();
+  render();
+  showToast(`${name} 대상자를 추가했습니다.`);
+}
+
+function removeTarget(name) {
+  const target = getTarget(name);
+  if (!target) return;
+  const hasFiles = state.tasks.some((task) => task.person === name && task.files.length);
+  const message = hasFiles
+    ? `${name} 대상자와 업로드 기록을 모두 삭제할까요?`
+    : `${name} 대상자를 삭제할까요?`;
+  if (!window.confirm(message)) return;
+
+  state.targets = state.targets.filter((item) => item.name !== name);
+  state.people = state.targets.map((item) => item.name);
+  state.tasks = state.tasks.filter((task) => task.person !== name);
+  if (state.filters.person === name) state.filters.person = "all";
+  setupSelects();
+  render();
+  showToast("대상자를 삭제했습니다.");
+}
+
 async function copyFamilyLink() {
+  if (!state.people.length) {
+    showToast("대상자를 먼저 추가하세요.");
+    elements.targetNameInput.focus();
+    return;
+  }
+
   caseId = caseId || makeCaseId();
   localStorage.setItem(CASE_STORAGE_KEY, caseId);
   await saveCaseState();
@@ -1691,6 +1867,11 @@ function setTemplatePersonRequired(templateKey, person, required) {
 }
 
 function setVisibleRequired(required) {
+  if (!state.people.length) {
+    showToast("대상자를 먼저 추가하세요.");
+    return;
+  }
+
   const tasks = getVisibleTasks();
   if (!tasks.length) {
     showToast("적용할 서류가 없습니다.");
@@ -1708,6 +1889,12 @@ function setVisibleRequired(required) {
 }
 
 function openTaskDialog(task) {
+  if (!task && !state.people.length) {
+    showToast("대상자를 먼저 추가하세요.");
+    elements.targetNameInput.focus();
+    return;
+  }
+
   const isEdit = Boolean(task);
   elements.dialogTitle.textContent = isEdit ? "항목 수정" : "항목 추가";
   elements.deleteTaskButton.hidden = !isEdit;
@@ -1723,6 +1910,11 @@ function openTaskDialog(task) {
 }
 
 function saveTaskFromDialog() {
+  if (!state.people.length) {
+    showToast("대상자를 먼저 추가하세요.");
+    return;
+  }
+
   const id = elements.editingTaskId.value;
   const existing = id ? findTask(id) : null;
   const values = {
@@ -1790,9 +1982,9 @@ function deleteCurrentTask() {
 }
 
 function resetState() {
-  const confirmed = window.confirm("현재 저장된 상태와 메모를 지우고 기본 범용 서류 목록으로 복원할까요?");
+  const confirmed = window.confirm("현재 대상자는 유지하고 요청상태, 메모, 파일 기록을 기본 서류 목록으로 복원할까요?");
   if (!confirmed) return;
-  state = createDefaultState();
+  state = createDefaultState({ settings: state.settings, targets: state.targets });
   setupSelects();
   render();
   showToast("기본 범용 서류 목록으로 복원했습니다.");
@@ -1864,11 +2056,14 @@ async function initializeApp() {
   if (appRole) {
     updateRoleInUrl();
     await loadRemoteCase();
+    setupSelects();
     if (appRole === "accountant") {
       state.mode = "requested";
       state.filters.person = "all";
     }
-    if (appRole === "family" && (state.filters.person === "all" || !state.people.includes(state.filters.person))) {
+    if (appRole === "family" && !state.people.length) {
+      state.filters.person = "";
+    } else if (appRole === "family" && (state.filters.person === "all" || !state.people.includes(state.filters.person))) {
       state.filters.person = state.people[0];
     }
   }
