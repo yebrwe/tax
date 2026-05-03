@@ -10,7 +10,7 @@ const STATUS = {
   done: "완료",
   na: "해당없음",
 };
-const SORT_VALUES = ["person", "category", "status", "title"];
+const SORT_VALUES = ["popular", "person", "category", "status", "title"];
 
 const CATEGORIES = [
   { key: "core", label: "기본/신고" },
@@ -38,6 +38,63 @@ const DETAIL_REPLACEMENTS = {
   "전자기부금영수증과 별도 기부금영수증을 모두 확인. 없으면 해당없음으로 표시.":
     "전자기부금영수증과 별도 기부금영수증을 모두 확인. 없으면 업로드하지 않아도 됩니다.",
 };
+
+const POPULAR_TEMPLATE_ORDER = [
+  "tax-help",
+  "year-end-pdf",
+  "earned-income",
+  "business-income-statement",
+  "other-income-statement",
+  "financial-income",
+  "business-registration",
+  "sales-data",
+  "purchase-expense",
+  "business-bank",
+  "rent-utilities",
+  "payroll",
+  "vehicle-expense",
+  "business-loan-interest",
+  "simple-books",
+  "double-entry-books",
+  "estimated-income",
+  "lease-contract",
+  "rental-income",
+  "rental-deposit",
+  "local-tax",
+  "real-estate-tax",
+  "loan-payment",
+  "insurance-payment",
+  "property-tax-payment",
+  "rental-repair",
+  "property-register",
+  "family-register",
+  "personal-change",
+  "credit-card-use",
+  "insurance-deduction",
+  "medical",
+  "education",
+  "donation",
+  "pension-saving",
+  "housing-loan-deduction",
+  "housing-saving",
+  "yellow-umbrella",
+  "tax-reduction",
+  "previous-return",
+  "tax-return-form",
+  "pension-income-statement",
+  "foreign-income",
+  "religious-income",
+  "marketing-office",
+  "sincere-report",
+  "joint-business",
+  "receipt-list",
+  "loss-carryback",
+  "disabled-proof",
+  "recipient-proof",
+  "adoption-foster",
+  "temporary-move",
+  "marriage-credit",
+];
 
 const DEFAULT_TEMPLATES = [
   {
@@ -1045,7 +1102,8 @@ function getVisibleCatalogItems() {
 
   return filtered.sort((a, b) => {
     if (state.filters.sort === "title") return a.title.localeCompare(b.title, "ko-KR");
-    return byCategory(a, b) || byOrder(a, b) || a.title.localeCompare(b.title, "ko-KR");
+    if (state.filters.sort === "category") return byCategory(a, b) || byPopularity(a, b) || a.title.localeCompare(b.title, "ko-KR");
+    return byPopularity(a, b) || a.title.localeCompare(b.title, "ko-KR");
   });
 }
 
@@ -1270,6 +1328,15 @@ function byOrder(a, b) {
   return (a.order ?? 999) - (b.order ?? 999);
 }
 
+function byPopularity(a, b) {
+  return popularityRank(a.templateKey) - popularityRank(b.templateKey) || byOrder(a, b);
+}
+
+function popularityRank(templateKey) {
+  const index = POPULAR_TEMPLATE_ORDER.indexOf(templateKey);
+  return index >= 0 ? index : 999;
+}
+
 function byCategory(a, b) {
   return categoryRank(a.category) - categoryRank(b.category);
 }
@@ -1318,6 +1385,7 @@ function bindEvents() {
 
   elements.catalogModeButton.addEventListener("click", () => {
     state.mode = "catalog";
+    state.filters.sort = "popular";
     render();
     window.setTimeout(() => elements.searchInput.focus(), 0);
   });
