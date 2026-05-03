@@ -2,7 +2,9 @@ const STORAGE_KEY = "tax-document-tracker-v1";
 const CASE_STORAGE_KEY = "tax-document-tracker-case-id";
 const DEFAULT_CASE_TITLE = "종합소득세 서류 관리";
 
-const PEOPLE = ["이윤하", "오명숙", "이훈경", "이훈"];
+const INDIVIDUAL_PEOPLE = ["이윤하", "오명숙", "이훈경", "이훈"];
+const CORPORATE_ENTITIES = ["주식회사 이오", "삼오개발"];
+const PEOPLE = [...INDIVIDUAL_PEOPLE, ...CORPORATE_ENTITIES];
 
 const STATUS = {
   todo: "미완료",
@@ -28,7 +30,7 @@ const DEFAULT_REQUIRED = {
   "loan-payment": "all",
   "insurance-payment": "all",
   donation: "all",
-  "personal-change": "all",
+  "personal-change": INDIVIDUAL_PEOPLE,
   medical: ["오명숙", "이윤하"],
 };
 
@@ -995,7 +997,7 @@ function renderFamilyProgress() {
   const tasks = state.tasks.filter((task) => task.person === state.filters.person && task.required);
   const resolved = tasks.filter(isResolvedTask).length;
   const remaining = tasks.length - resolved;
-  elements.familyProgressPerson.textContent = `${state.filters.person}님`;
+  elements.familyProgressPerson.textContent = targetLabel(state.filters.person);
   elements.familyProgressText.textContent = `${resolved}/${tasks.length} 처리`;
   elements.finishUploadButton.disabled = remaining > 0 || !tasks.length;
   elements.finishUploadButton.textContent = !tasks.length ? "요청 없음" : remaining > 0 ? `${remaining}건 남음` : "다 올렸어요";
@@ -1341,6 +1343,10 @@ function isResolvedTask(task) {
   return task.status === "done" || task.status === "na";
 }
 
+function targetLabel(person) {
+  return CORPORATE_ENTITIES.includes(person) ? person : `${person}님`;
+}
+
 function byPerson(a, b) {
   return state.people.indexOf(a.person) - state.people.indexOf(b.person);
 }
@@ -1384,7 +1390,7 @@ function bindEvents() {
   elements.openFamilyLinkButton.addEventListener("click", async () => {
     const parsedCaseId = parseCaseId(elements.familyLinkInput.value.trim());
     if (!parsedCaseId) {
-      showToast("세무사가 보낸 가족 링크나 작업방 코드를 입력하세요.");
+      showToast("세무사가 보낸 업로드 링크나 작업방 코드를 입력하세요.");
       return;
     }
     appRole = "family";
@@ -1463,7 +1469,7 @@ function bindEvents() {
     if (event.target.dataset.action === "person-required") {
       setTemplatePersonRequired(taskCard.dataset.templateKey, event.target.dataset.person, event.target.checked);
       render();
-      showToast(event.target.checked ? `${event.target.dataset.person}님에게 요청했습니다.` : `${event.target.dataset.person}님 요청을 해제했습니다.`);
+      showToast(event.target.checked ? `${targetLabel(event.target.dataset.person)} 요청을 켰습니다.` : `${targetLabel(event.target.dataset.person)} 요청을 해제했습니다.`);
       return;
     }
 
@@ -1592,7 +1598,7 @@ async function copyFamilyLink() {
   url.searchParams.set("case", caseId);
   url.searchParams.set("role", "family");
   await copyText(url.toString());
-  showToast("가족용 링크를 복사했습니다.");
+  showToast("업로드 링크를 복사했습니다.");
 }
 
 async function finishFamilyUpload() {
