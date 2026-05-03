@@ -486,6 +486,7 @@ const elements = {
   appEyebrow: document.querySelector("#appEyebrow"),
   appTitle: document.querySelector("#appTitle"),
   startAccountantButton: document.querySelector("#startAccountantButton"),
+  familyEntryCard: document.querySelector("#familyEntryCard"),
   familyLinkInput: document.querySelector("#familyLinkInput"),
   openFamilyLinkButton: document.querySelector("#openFamilyLinkButton"),
   caseSettings: document.querySelector("#caseSettings"),
@@ -1375,7 +1376,7 @@ function categoryRank(key) {
 }
 
 function bindEvents() {
-  elements.startAccountantButton.addEventListener("click", async () => {
+  const openAccountantScreen = async () => {
     appRole = "accountant";
     caseId = caseId || makeCaseId();
     localStorage.setItem(CASE_STORAGE_KEY, caseId);
@@ -1386,6 +1387,15 @@ function bindEvents() {
     state.mode = "requested";
     state.filters.person = "all";
     render();
+  };
+
+  elements.startAccountantButton.addEventListener("click", openAccountantScreen);
+  elements.startAccountantButton.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    openAccountantScreen();
   });
 
   elements.openFamilyLinkButton.addEventListener("click", async () => {
@@ -1404,6 +1414,13 @@ function bindEvents() {
       state.filters.person = state.people[0];
     }
     render();
+  });
+
+  elements.familyEntryCard.addEventListener("click", (event) => {
+    if (event.target.closest("button, input, label, a, select, textarea")) {
+      return;
+    }
+    elements.familyLinkInput.focus();
   });
 
   elements.requestedModeButton.addEventListener("click", () => {

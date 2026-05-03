@@ -135,6 +135,25 @@ main {
   box-shadow: var(--shadow-soft);
 }
 
+.entry-card-button {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry-card-clickable {
+  cursor: text;
+}
+
+.entry-card-button:hover,
+.entry-card-button:focus-visible,
+.entry-card-clickable:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14), var(--shadow-soft);
+}
+
 .entry-card h2 {
   font-size: 1.24rem;
 }
@@ -164,6 +183,9 @@ main {
 .entry-action {
   width: 100%;
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .app-header {
@@ -212,7 +234,7 @@ main {
 
 .header-actions {
   display: grid;
-  grid-template-columns: repeat(5, minmax(96px, max-content));
+  grid-template-columns: repeat(3, minmax(112px, max-content));
   align-items: stretch;
   justify-content: flex-end;
   gap: 8px;
@@ -546,6 +568,35 @@ button:focus-visible {
   border-color: #f2b9b1;
   color: var(--danger);
   background: var(--danger-soft);
+}
+
+.advanced-backup {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.advanced-backup summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--muted);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.advanced-backup-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.advanced-backup .file-import {
+  color: var(--text);
+  font-size: 0.9rem;
 }
 
 .task-panel {
