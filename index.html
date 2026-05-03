@@ -39,21 +39,26 @@
         <h1 id="appTitle">종합소득세 서류 관리</h1>
       </div>
       <div class="header-actions" aria-label="데이터 작업">
-        <button class="icon-button" id="copySummaryButton" type="button" title="요약 복사" aria-label="요약 복사">
-          <span aria-hidden="true">⧉</span>
+        <button class="icon-button header-action-button" id="copySummaryButton" type="button" title="진행상황 복사" aria-label="진행상황 복사">
+          <span class="action-icon" aria-hidden="true">⧉</span>
+          <span class="action-label">진행상황 복사</span>
         </button>
-        <button class="icon-button" id="downloadZipButton" type="button" title="업로드 파일 ZIP 다운로드" aria-label="업로드 파일 ZIP 다운로드">
-          <span aria-hidden="true">ZIP</span>
+        <button class="icon-button header-action-button primary-action" id="downloadZipButton" type="button" title="전체 파일 받기" aria-label="전체 파일 받기">
+          <span class="action-icon" aria-hidden="true">ZIP</span>
+          <span class="action-label">전체 파일 받기</span>
         </button>
-        <button class="icon-button" id="exportButton" type="button" title="백업 내보내기" aria-label="백업 내보내기">
-          <span aria-hidden="true">⇩</span>
+        <button class="icon-button header-action-button" id="exportButton" type="button" title="백업 저장" aria-label="백업 저장">
+          <span class="action-icon" aria-hidden="true">⇩</span>
+          <span class="action-label">백업 저장</span>
         </button>
-        <label class="icon-button file-import" title="백업 불러오기" aria-label="백업 불러오기">
-          <span aria-hidden="true">⇧</span>
+        <label class="icon-button header-action-button file-import" title="백업 불러오기" aria-label="백업 불러오기">
+          <span class="action-icon" aria-hidden="true">⇧</span>
+          <span class="action-label">백업 불러오기</span>
           <input id="importInput" type="file" accept="application/json" />
         </label>
-        <button class="icon-button" id="printButton" type="button" title="인쇄" aria-label="인쇄">
-          <span aria-hidden="true">⎙</span>
+        <button class="icon-button header-action-button" id="printButton" type="button" title="인쇄하기" aria-label="인쇄하기">
+          <span class="action-icon" aria-hidden="true">⎙</span>
+          <span class="action-label">인쇄하기</span>
         </button>
       </div>
     </header>
