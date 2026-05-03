@@ -520,8 +520,6 @@ const elements = {
   resetButton: document.querySelector("#resetButton"),
   copySummaryButton: document.querySelector("#copySummaryButton"),
   downloadZipButton: document.querySelector("#downloadZipButton"),
-  exportButton: document.querySelector("#exportButton"),
-  importInput: document.querySelector("#importInput"),
   printButton: document.querySelector("#printButton"),
   compactViewButton: document.querySelector("#compactViewButton"),
   detailViewButton: document.querySelector("#detailViewButton"),
@@ -890,6 +888,7 @@ function formatCaseLabel(settings) {
 function render() {
   renderCaseHeader();
   document.body.dataset.screen = appRole ? "app" : "entry";
+  delete document.documentElement.dataset.bootScreen;
   if (!appRole) {
     delete document.body.dataset.role;
     delete document.body.dataset.mode;
@@ -1552,8 +1551,6 @@ function bindEvents() {
   elements.resetButton.addEventListener("click", resetState);
   elements.copySummaryButton.addEventListener("click", copySummary);
   elements.downloadZipButton.addEventListener("click", downloadZip);
-  elements.exportButton.addEventListener("click", exportState);
-  elements.importInput.addEventListener("change", importState);
   elements.printButton.addEventListener("click", () => window.print());
 
   elements.compactViewButton.addEventListener("click", () => {
@@ -1799,53 +1796,6 @@ function resetState() {
   setupSelects();
   render();
   showToast("기본 범용 서류 목록으로 복원했습니다.");
-}
-
-function exportState() {
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    app: "tax-document-tracker",
-    version: 1,
-    ...state,
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `tax-documents-${state.settings.taxYear}-for-${state.settings.filingYear}-${state.settings.filingMonth.padStart(2, "0")}-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
-function importState(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    try {
-      const parsed = JSON.parse(String(reader.result));
-      if (!Array.isArray(parsed.tasks)) throw new Error("Invalid backup");
-      state = {
-        ...createDefaultState(),
-        ...parsed,
-        settings: normalizeCaseSettings(parsed.settings),
-        people: Array.isArray(parsed.people) ? unique([...PEOPLE, ...parsed.people]) : PEOPLE,
-        tasks: parsed.tasks.map(normalizeTask),
-        filters: createDefaultState().filters,
-      };
-      state.tasks = mergeMissingTemplateTasks(state);
-      setupSelects();
-      render();
-      showToast("백업을 불러왔습니다.");
-    } catch {
-      showToast("불러올 수 없는 JSON 파일입니다.");
-    } finally {
-      elements.importInput.value = "";
-    }
-  });
-  reader.readAsText(file);
 }
 
 async function copySummary() {

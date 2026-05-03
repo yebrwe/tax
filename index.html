@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>종합소득세 서류 관리</title>
     <link rel="icon" href="data:," />
+    <script>
+      (() => {
+        try {
+          const role = new URLSearchParams(window.location.search).get("role");
+          if (role === "family" || role === "accountant") {
+            document.documentElement.dataset.bootScreen = "app";
+          }
+        } catch {
+          // Keep the static entry screen if URL parsing is unavailable.
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-screen="entry">
@@ -169,21 +181,6 @@
                 <span aria-hidden="true">↺</span>
                 기본 목록으로 복원
               </button>
-
-              <details class="advanced-backup">
-                <summary>고급 백업</summary>
-                <div class="advanced-backup-actions">
-                  <button class="wide-button neutral" id="exportButton" type="button">
-                    <span aria-hidden="true">⇩</span>
-                    백업 파일 저장
-                  </button>
-                  <label class="wide-button neutral file-import">
-                    <span aria-hidden="true">⇧</span>
-                    백업 파일 불러오기
-                    <input id="importInput" type="file" accept="application/json" />
-                  </label>
-                </div>
-              </details>
             </div>
           </details>
         </aside>

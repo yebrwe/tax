@@ -44,6 +44,12 @@ body[data-screen="entry"] main {
   display: none;
 }
 
+html[data-boot-screen="app"] body[data-screen="entry"] .entry-screen,
+html[data-boot-screen="app"] body[data-screen="entry"] .app-header,
+html[data-boot-screen="app"] body[data-screen="entry"] main {
+  display: none;
+}
+
 button,
 input,
 select,
@@ -303,18 +309,6 @@ main {
   color: #fff;
 }
 
-.file-import {
-  position: relative;
-  overflow: hidden;
-}
-
-.file-import input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
 .overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -568,35 +562,6 @@ button:focus-visible {
   border-color: #f2b9b1;
   color: var(--danger);
   background: var(--danger-soft);
-}
-
-.advanced-backup {
-  grid-column: 1 / -1;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.advanced-backup summary {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  color: var(--muted);
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.advanced-backup-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 0 10px 10px;
-}
-
-.advanced-backup .file-import {
-  color: var(--text);
-  font-size: 0.9rem;
 }
 
 .task-panel {
