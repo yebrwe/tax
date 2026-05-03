@@ -544,24 +544,35 @@ let saveTimer;
 let isLoadingRemote = false;
 
 function getDefaultCaseSettings() {
-  const filingYear = new Date().getFullYear();
   return {
     title: DEFAULT_CASE_TITLE,
-    taxYear: String(filingYear - 1),
-    filingYear: String(filingYear),
-    filingMonth: "5",
+    taxYear: "",
+    filingYear: "",
+    filingMonth: "",
+    periodConfigured: false,
   };
 }
 
 function normalizeCaseSettings(settings = {}) {
   const fallback = getDefaultCaseSettings();
   const filingMonth = Number(settings.filingMonth);
+  const taxYear = normalizeYear(settings.taxYear);
+  const filingYear = normalizeYear(settings.filingYear);
+  const normalizedMonth = filingMonth >= 1 && filingMonth <= 12 ? String(filingMonth) : "";
+  const currentYear = new Date().getFullYear();
+  const isLegacyDefaultPeriod =
+    settings.periodConfigured !== true &&
+    taxYear === String(currentYear - 1) &&
+    filingYear === String(currentYear) &&
+    normalizedMonth === "5";
+  const hasPeriod = Boolean(taxYear || filingYear || normalizedMonth);
 
   return {
     title: String(settings.title || "").trim() || fallback.title,
-    taxYear: normalizeYear(settings.taxYear) || fallback.taxYear,
-    filingYear: normalizeYear(settings.filingYear) || fallback.filingYear,
-    filingMonth: filingMonth >= 1 && filingMonth <= 12 ? String(filingMonth) : fallback.filingMonth,
+    taxYear: isLegacyDefaultPeriod ? "" : taxYear,
+    filingYear: isLegacyDefaultPeriod ? "" : filingYear,
+    filingMonth: isLegacyDefaultPeriod ? "" : normalizedMonth,
+    periodConfigured: !isLegacyDefaultPeriod && hasPeriod,
   };
 }
 
@@ -927,7 +938,7 @@ function formatCaseLabel(settings) {
   const parts = [];
   if (settings.taxYear) parts.push(`${settings.taxYear}년 귀속`);
   if (settings.filingYear && settings.filingMonth) parts.push(`${settings.filingYear}년 ${settings.filingMonth}월 신고 준비`);
-  return parts.join(" · ") || "신고 준비";
+  return parts.join(" · ") || "신고기간 설정 필요";
 }
 
 function render() {
@@ -1702,6 +1713,7 @@ function updateCaseSettingsFromForm() {
     taxYear: elements.taxYearInput.value,
     filingYear: elements.filingYearInput.value,
     filingMonth: elements.filingMonthInput.value,
+    periodConfigured: true,
   });
   render();
 }
@@ -1723,6 +1735,7 @@ async function createNewCase() {
     taxYear: elements.taxYearInput.value,
     filingYear: elements.filingYearInput.value,
     filingMonth: elements.filingMonthInput.value,
+    periodConfigured: true,
   });
 
   caseId = makeCaseId();
