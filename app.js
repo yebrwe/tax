@@ -1053,7 +1053,7 @@ function renderTaskCard(task) {
   const note = task.note.trim() || "메모 없음";
   const detail = task.detail.trim() || "상세 없음";
   const statusClass = `is-${task.status}`;
-  const compactClass = state.viewMode === "compact" || state.mode === "catalog" ? "compact" : "";
+  const compactClass = state.viewMode === "compact" ? "compact" : "";
   const requiredClass = task.required || task.partiallyRequired ? "is-required" : "is-unrequested";
   const requestLabel = getRequestLabel(task);
   const editButton =
@@ -1086,9 +1086,10 @@ function renderTaskCard(task) {
         ? '<button class="text-button no-file-button" type="button" data-action="mark-todo">취소</button>'
         : '<button class="text-button no-file-button" type="button" data-action="mark-na">없어요</button>'
       : "";
-  const taskBody =
-    appRole === "family"
-      ? `
+
+  let taskBody;
+  if (appRole === "family") {
+    taskBody = `
         <div class="task-body family-upload-body">
           <div class="file-tools">
             <div class="file-row family-file-row">
@@ -1099,8 +1100,22 @@ function renderTaskCard(task) {
           </div>
           <p class="family-detail">${escapeHtml(detail)}</p>
         </div>
-      `
-      : `
+      `;
+  } else if (task.isCatalogItem) {
+    taskBody = `
+        <div class="task-body catalog-detail-body">
+          <div class="detail-box">
+            <span>상세</span>
+            <p>${escapeHtml(detail)}</p>
+          </div>
+          <div class="detail-box">
+            <span>요청 상태</span>
+            <p>${escapeHtml(note)}</p>
+          </div>
+        </div>
+      `;
+  } else {
+    taskBody = `
         <div class="task-body">
           <div class="detail-box">
             <span>상세</span>
@@ -1118,6 +1133,7 @@ function renderTaskCard(task) {
           </div>
         </div>
       `;
+  }
 
   return `
     <article class="task-card ${statusClass} ${compactClass} ${requiredClass}" data-task-id="${escapeHtml(task.id)}" data-template-key="${escapeHtml(task.templateKey)}">
