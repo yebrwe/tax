@@ -938,6 +938,7 @@ function render() {
   if (!appRole) {
     delete document.body.dataset.role;
     delete document.body.dataset.mode;
+    delete document.body.dataset.view;
     return;
   }
 
@@ -954,6 +955,7 @@ function render() {
   }
   document.body.dataset.role = appRole;
   document.body.dataset.mode = state.mode;
+  document.body.dataset.view = state.viewMode;
 
   if (!SORT_VALUES.includes(state.filters.sort)) state.filters.sort = "category";
   if (!["all", "todo", "done"].includes(state.filters.status)) state.filters.status = "all";
@@ -1307,6 +1309,7 @@ function renderCatalogPersonToggles(item) {
 
 function renderTaskGroupCard(group) {
   const detail = group.detail.trim() || "상세 없음";
+  const compactClass = state.viewMode === "compact" ? "compact" : "";
   const fileText = group.fileCount ? `업로드 ${group.fileCount}개` : "업로드 없음";
   const statusText = group.resolvedCount === group.tasks.length ? "처리 완료" : `${group.resolvedCount}/${group.tasks.length} 처리`;
   const peopleRows = group.tasks
@@ -1329,7 +1332,7 @@ function renderTaskGroupCard(group) {
     .join("");
 
   return `
-    <article class="task-card task-group is-required is-${group.status}" data-template-key="${escapeHtml(group.templateKey)}">
+    <article class="task-card task-group ${compactClass} is-required is-${group.status}" data-template-key="${escapeHtml(group.templateKey)}">
       <div class="task-head">
         <div class="task-title">
           <h3>${escapeHtml(group.title)}</h3>
