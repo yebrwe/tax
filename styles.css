@@ -1641,6 +1641,17 @@ body[data-role="accountant"] .filter-drawer .case-settings summary {
   color: var(--text);
 }
 
+body[data-role="accountant"] .filter-drawer .case-settings .wide-button.neutral {
+  border-color: var(--line);
+  color: var(--text);
+  background: var(--surface);
+}
+
+body[data-role="accountant"] .filter-drawer .case-settings .wide-button.neutral:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+}
+
 body[data-role="accountant"] .filter-drawer #resetButton {
   align-self: end;
   color: var(--danger);

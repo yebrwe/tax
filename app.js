@@ -896,7 +896,7 @@ function renderCaseHeader() {
   state.settings = normalizeCaseSettings(state.settings);
   const label = formatCaseLabel(state.settings);
   document.title = state.settings.title;
-  elements.entryEyebrow.textContent = label;
+  elements.entryEyebrow.textContent = "연도별 신고 서류 관리";
   elements.appEyebrow.textContent = label;
   elements.entryTitle.textContent = state.settings.title;
   elements.appTitle.textContent = state.settings.title;
