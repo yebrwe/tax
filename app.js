@@ -40,6 +40,8 @@ const DETAIL_REPLACEMENTS = {
 };
 
 const POPULAR_TEMPLATE_ORDER = [
+  "family-register",
+  "personal-change",
   "tax-help",
   "year-end-pdf",
   "earned-income",
@@ -67,8 +69,6 @@ const POPULAR_TEMPLATE_ORDER = [
   "property-tax-payment",
   "rental-repair",
   "property-register",
-  "family-register",
-  "personal-change",
   "credit-card-use",
   "insurance-deduction",
   "medical",
