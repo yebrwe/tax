@@ -518,6 +518,7 @@ const elements = {
   finishUploadButton: document.querySelector("#finishUploadButton"),
   resetButton: document.querySelector("#resetButton"),
   copySummaryButton: document.querySelector("#copySummaryButton"),
+  downloadZipButton: document.querySelector("#downloadZipButton"),
   exportButton: document.querySelector("#exportButton"),
   importInput: document.querySelector("#importInput"),
   printButton: document.querySelector("#printButton"),
@@ -1533,6 +1534,7 @@ function bindEvents() {
   elements.unrequestVisibleButton.addEventListener("click", () => setVisibleRequired(false));
   elements.resetButton.addEventListener("click", resetState);
   elements.copySummaryButton.addEventListener("click", copySummary);
+  elements.downloadZipButton.addEventListener("click", downloadZip);
   elements.exportButton.addEventListener("click", exportState);
   elements.importInput.addEventListener("change", importState);
   elements.printButton.addEventListener("click", () => window.print());
@@ -1611,6 +1613,35 @@ async function finishFamilyUpload() {
 
   await saveCaseState();
   showToast("완료 상태를 저장했습니다.");
+}
+
+async function downloadZip() {
+  caseId = caseId || makeCaseId();
+  localStorage.setItem(CASE_STORAGE_KEY, caseId);
+
+  if (!remoteEnabled()) {
+    showToast("배포된 주소에서 업로드 파일 ZIP을 받을 수 있습니다.");
+    return;
+  }
+
+  try {
+    await saveCaseState();
+    const response = await fetch(`/api/download?id=${encodeURIComponent(caseId)}`);
+    if (!response.ok) throw new Error("Download failed");
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `tax-documents-${state.settings.taxYear || caseId}.zip`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast("ZIP 다운로드를 시작했습니다.");
+  } catch {
+    showToast("ZIP 파일을 만들지 못했습니다.");
+  }
 }
 
 async function copyText(text) {

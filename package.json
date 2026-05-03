@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@vercel/blob": "^1.0.2",
-    "formidable": "^3.5.2"
+    "@vercel/blob": "^2.3.3",
+    "formidable": "^3.5.2",
+    "jszip": "^3.10.1"
   },
   "scripts": {
-    "check": "node --check app.js",
+    "check": "node --check app.js && node --check api/case.js && node --check api/upload.js && node --check api/download.js",
     "dev": "python3 -m http.server 4173",
     "deploy": "npx vercel --prod"
   }
