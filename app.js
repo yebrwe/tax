@@ -1410,7 +1410,18 @@ async function uploadSelectedFiles(task, selectedFiles) {
       method: "POST",
       body: formData,
     });
-    if (!response.ok) throw new Error("Upload failed");
+    if (!response.ok) {
+      let message = "파일 업로드에 실패했습니다.";
+      try {
+        const payload = await response.json();
+        if (payload.error === "Empty file") message = "빈 파일은 업로드할 수 없습니다.";
+        else if (payload.error === "Missing upload fields") message = "업로드 정보가 누락됐습니다. 링크를 다시 열어주세요.";
+        else if (payload.detail) message = `업로드 실패: ${payload.detail}`;
+      } catch {
+        // Use the default message if the server did not return JSON.
+      }
+      throw new Error(message);
+    }
     const payload = await response.json();
     uploadedFiles.push(payload.file);
   }
@@ -1610,8 +1621,8 @@ function bindEvents() {
         task.updatedAt = new Date().toISOString();
         render();
         showToast(remoteEnabled() ? "파일을 업로드했습니다." : "파일명을 기록했습니다.");
-      } catch {
-        showToast("파일 업로드에 실패했습니다.");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "파일 업로드에 실패했습니다.");
       } finally {
         event.target.value = "";
       }
